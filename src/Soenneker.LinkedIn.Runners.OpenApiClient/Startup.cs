@@ -6,6 +6,8 @@ using Soenneker.LinkedIn.Runners.OpenApiClient.Utils;
 using Soenneker.LinkedIn.Runners.OpenApiClient.Utils.Abstract;
 using Soenneker.LinkedIn.Runners.OpenApiClient.Documentation;
 using Soenneker.Playwrights.Installation.Registrars;
+using Soenneker.Postman.Converter.Registrars;
+using Soenneker.OpenApi.Merger.Registrars;
 
 namespace Soenneker.LinkedIn.Runners.OpenApiClient;
 
@@ -25,7 +27,10 @@ public static class Startup
         services.AddHostedService<ConsoleHostedService>()
                 .AddSingleton<IFileOperationsUtil, FileOperationsUtil>()
                 .AddSingleton<ILearnDocumentationSource, LearnDocumentationSource>()
+                .AddSingleton<IPostmanSpecSource, PostmanSpecSource>()
                 .AddSingleton<IDocumentationSpecGenerator, DocumentationSpecGenerator>()
+                .AddPostmanConverterAsSingleton()
+                .AddOpenApiMergerAsSingleton()
                 .AddPlaywrightInstallationUtilAsSingleton()
                 .AddRunnersManagerAsSingleton()
                 .AddOpenApiFixerAsSingleton()

@@ -14,7 +14,8 @@ public sealed class DocumentationOptions
     public string? OutputDirectory { get; set; }
     public string? BaselineDirectory { get; set; }
     public bool SpecOnly { get; set; }
-    public bool FailOnUnresolvedSchemas { get; set; } = true;
+    public bool FailOnUnresolvedSchemas { get; set; }
+    public string? PostmanDirectory { get; set; }
 
     public void Validate()
     {

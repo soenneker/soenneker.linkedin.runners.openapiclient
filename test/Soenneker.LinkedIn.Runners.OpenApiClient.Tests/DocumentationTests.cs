@@ -52,7 +52,7 @@ public sealed class DocumentationTests
         try
         {
             var source = new FakeSource { Pages = [Page()] };
-            var generator = new DocumentationSpecGenerator(source, NullLogger<DocumentationSpecGenerator>.Instance);
+            var generator = new DocumentationSpecGenerator(source, new FakePostmanSource(), NullLogger<DocumentationSpecGenerator>.Instance);
             var options = new DocumentationOptions { SpecOnly = true };
             Check(await generator.Generate(directory, options), "First generation was not detected.");
             string original = await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"));
@@ -84,7 +84,7 @@ public sealed class DocumentationTests
         try
         {
             var source = new FakeSource { Pages = [Page(), new() { Url = "https://learn.microsoft.com/en-us/linkedin/shared/extra", Title = "Extra" }] };
-            var generator = new DocumentationSpecGenerator(source, NullLogger<DocumentationSpecGenerator>.Instance);
+            var generator = new DocumentationSpecGenerator(source, new FakePostmanSource(), NullLogger<DocumentationSpecGenerator>.Instance);
             var options = new DocumentationOptions { SpecOnly = true };
             await generator.Generate(directory, options);
             string previous = await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"));
@@ -102,7 +102,7 @@ public sealed class DocumentationTests
         Directory.CreateDirectory(directory);
         try
         {
-            var generator = new DocumentationSpecGenerator(new FakeSource { Pages = [Page()] }, NullLogger<DocumentationSpecGenerator>.Instance);
+            var generator = new DocumentationSpecGenerator(new FakeSource { Pages = [Page()] }, new FakePostmanSource(), NullLogger<DocumentationSpecGenerator>.Instance);
             string baseline = Path.Combine(directory, "baseline");
             await generator.Generate(baseline, new DocumentationOptions { SpecOnly = true });
             bool changed = await generator.Generate(Path.Combine(directory, "client"), new DocumentationOptions { SpecOnly = true, BaselineDirectory = baseline });
@@ -149,6 +149,39 @@ public sealed class DocumentationTests
         try { await action(); }
         catch (InvalidOperationException) { return; }
         throw new InvalidOperationException("Expected incomplete documentation to be rejected.");
+    }
+
+    [Test]
+    public async Task CollectionChangesAndFetchFailuresAreTrackedWithoutDiscardingTheSpecification()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "linkedin-hybrid-test-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var postman = new FakePostmanSource();
+            postman.Collections["widgets"] = "{\"info\":{\"name\":\"Widgets\"},\"item\":[]}";
+            var generator = new DocumentationSpecGenerator(new FakeSource { Pages = [Page()] }, postman, NullLogger<DocumentationSpecGenerator>.Instance);
+            var options = new DocumentationOptions { SpecOnly = true };
+            await generator.Generate(directory, options);
+            Check(!await generator.Generate(directory, options), "Identical hybrid sources were unstable.");
+            postman.Collections["widgets"] = "{\"info\":{\"name\":\"Updated widgets\"},\"item\":[]}";
+            Check(!await generator.Generate(directory, options), "Raw metadata-only change regenerated the client.");
+            JsonNode changes = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(directory, "documentation", "changes.json")))!;
+            Check(changes["ChangedPostmanCollections"]![0]!.ToString() == "widgets", "Collection change was not reported.");
+            string previous = await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"));
+            postman.Failure = new InvalidOperationException("Source unavailable with no previous snapshot");
+            await MustFail(() => generator.Generate(directory, options));
+            Check(previous == await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json")), "Download failure replaced the spec.");
+        }
+        finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
+    }
+
+    private sealed class FakePostmanSource : IPostmanSpecSource
+    {
+        public Dictionary<string, string> Collections { get; } = [];
+        public Exception? Failure { get; set; }
+        public Task<PostmanBuild> Read(string outputDirectory, DocumentationOptions options, CancellationToken cancellationToken = default) => Failure != null
+            ? Task.FromException<PostmanBuild>(Failure)
+            : Task.FromResult(new PostmanBuild(new DocumentationOpenApiBuilder().Build([Page()]).Document, Collections));
     }
 
     private sealed class FakeSource : ILearnDocumentationSource

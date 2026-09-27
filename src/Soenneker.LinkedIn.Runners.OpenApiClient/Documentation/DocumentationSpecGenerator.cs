@@ -14,7 +14,7 @@ using Microsoft.OpenApi.Reader;
 
 namespace Soenneker.LinkedIn.Runners.OpenApiClient.Documentation;
 
-public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source, ILogger<DocumentationSpecGenerator> logger) : IDocumentationSpecGenerator
+public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source, IPostmanSpecSource postmanSource, ILogger<DocumentationSpecGenerator> logger) : IDocumentationSpecGenerator
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
@@ -32,8 +32,10 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
         JsonObject? previousSpec = File.Exists(baselineSpec) ? JsonNode.Parse(await File.ReadAllTextAsync(baselineSpec, cancellationToken))!.AsObject() : null;
         JsonObject? publishedSpec = File.Exists(specPath) ? JsonNode.Parse(await File.ReadAllTextAsync(specPath, cancellationToken))!.AsObject() : null;
         IReadOnlyList<DocumentationPage> pages;
+        PostmanBuild postman;
         try
         {
+            postman = await postmanSource.Read(outputDirectory, options, cancellationToken);
             pages = await source.Read(options, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -73,7 +75,29 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
             await WriteIfChanged(Path.Combine(snapshotDirectory, "crawl-failure.json"), JsonSerializer.Serialize(new { RemovedPages = removedPages, PreviousSpecificationRetained = true }, JsonOptions) + "\n", cancellationToken);
             throw new InvalidOperationException("Previously tracked documentation disappeared from the crawl. Refusing an incomplete update: " + string.Join(", ", removedPages));
         }
-        DocumentationBuild build = new DocumentationOpenApiBuilder().Build(pages);
+        var postmanManifest = new JsonObject();
+        string previousPostmanPath = Path.Combine(baseline, "documentation", "postman-manifest.json");
+        JsonObject? previousPostman = File.Exists(previousPostmanPath) ? JsonNode.Parse(await File.ReadAllTextAsync(previousPostmanPath, cancellationToken))!.AsObject() : null;
+        foreach ((string name, string raw) in postman.Collections)
+        {
+            string filename = "postman-" + name + ".json";
+            string content = Serialize(JsonNode.Parse(raw)!);
+            snapshots[filename] = content;
+            postmanManifest[name] = new JsonObject
+            {
+                ["file"] = filename,
+                ["sha256"] = Hash(content),
+                ["fetchIssue"] = postman.Issues?.FirstOrDefault(i => i.Section == name)?.Message
+            };
+        }
+        string[] changedCollections = postmanManifest.Where(p => !JsonNode.DeepEquals(previousPostman?[p.Key], p.Value)).Select(p => p.Key)
+            .Union(previousPostman?.Select(p => p.Key).Except(postmanManifest.Select(p => p.Key)) ?? []).Order(StringComparer.Ordinal).ToArray();
+        DocumentationBuild build = new HybridOpenApiBuilder().Build(postman.Document, new DocumentationOpenApiBuilder().Build(pages));
+        if (postman.Issues is { Count: > 0 })
+        {
+            build = build with { Issues = build.Issues.Concat(postman.Issues).ToArray() };
+            foreach (DocumentationIssue issue in postman.Issues) logger.LogWarning("{Collection}: {Message}", issue.Section, issue.Message);
+        }
         string serialized = Serialize(build.Document);
         using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(serialized)))
         {
@@ -90,7 +114,7 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
         bool changed = publishedSpec == null || !JsonNode.DeepEquals(publishedSpec, build.Document);
         bool baselineChanged = previousSpec == null || !JsonNode.DeepEquals(previousSpec, build.Document);
         string[] changedPages = manifest.Where(p => !JsonNode.DeepEquals(previousManifest?[p.Key], p.Value)).Select(p => p.Key).Order(StringComparer.Ordinal).ToArray();
-        string[] removedOperations = previousSpec?["x-generator"]?.ToString() == "linkedin-learn-playwright-v1"
+        string[] removedOperations = previousSpec?["x-generator"]?.ToString() == "linkedin-postman-learn-v1"
             ? Operations(previousSpec).Except(Operations(build.Document), StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray() : [];
         if (removedOperations.Length > 0)
         {
@@ -104,18 +128,26 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
         foreach ((string name, string content) in snapshots)
             await WriteIfChanged(Path.Combine(snapshotDirectory, name), content, cancellationToken);
         await WriteIfChanged(manifestPath, Serialize(manifest), cancellationToken);
+        await WriteIfChanged(Path.Combine(snapshotDirectory, "postman-manifest.json"), Serialize(postmanManifest), cancellationToken);
         await WriteIfChanged(Path.Combine(snapshotDirectory, "coverage.json"), JsonSerializer.Serialize(new
         {
             Pages = pages.Count,
+            PostmanCollections = postman.Collections.Count,
+            PostmanFetchIssues = postman.Issues,
+            ResponsesEnrichedFromLearn = build.Document["paths"]!.AsObject().SelectMany(p => p.Value!.AsObject())
+                .Where(p => p.Value is JsonObject).SelectMany(p => (p.Value?["responses"] as JsonObject)?.Select(r => r.Value) ?? [])
+                .Count(r => (r?["content"] as JsonObject)?.Any(m => m.Value?["x-linkedin-learn-schema"]?.ToString() == "true") == true),
             Operations = Operations(build.Document).Count(),
             Schemas = build.Document["components"]!["schemas"]!.AsObject().Count,
             Issues = build.Issues
         }, JsonOptions) + "\n", cancellationToken);
         // Keep the last meaningful change report on no-op runs to avoid an extra commit the next day.
-        if (changedPages.Length > 0 || baselineChanged)
+        if (changedPages.Length > 0 || changedCollections.Length > 0 || baselineChanged)
             await WriteIfChanged(Path.Combine(snapshotDirectory, "changes.json"), JsonSerializer.Serialize(new
             {
                 ChangedPages = changedPages,
+                ChangedPostmanCollections = changedCollections,
+                PostmanFetchIssues = postman.Issues,
                 AddedOperations = Operations(build.Document).Except(previousSpec == null ? [] : Operations(previousSpec), StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray(),
                 RemovedOperations = removedOperations,
                 SpecificationChanges = Differences(previousSpec, build.Document, "").ToArray(),
