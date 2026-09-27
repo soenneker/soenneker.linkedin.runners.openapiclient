@@ -14,6 +14,34 @@ namespace Soenneker.LinkedIn.Runners.OpenApiClient.Tests;
 public sealed class DocumentationTests
 {
     [Test]
+    public void DuplicateExamplePropertiesAreNormalizedBeforeSchemaInference()
+    {
+        const string example = """
+            {
+                "downloadUrlExpiresAt": "obsolete",
+                "downloadUrlExpiresAt": 123,
+                "nested": { "active": 0, "active": true },
+                "elements": [{ "name": 42, "name": "widget" }],
+                "empty": "obsolete", "empty": null,
+                "Name": "case-sensitive"
+            }
+            """;
+        DocumentationPage page = Page();
+        page.Blocks =
+        [
+            new() { Kind = "code", Section = "Get", Text = "GET https://api.linkedin.com/rest/widgets" },
+            new() { Kind = "code", Section = "Response", Text = example }
+        ];
+        JsonObject document = new DocumentationOpenApiBuilder().Build([page]).Document;
+        JsonNode properties = document["paths"]!["/rest/widgets"]!["get"]!["responses"]!["default"]!["content"]!["application/json"]!["schema"]!["properties"]!;
+        Check(properties["downloadUrlExpiresAt"]!["type"]!.ToString() == "integer", "Duplicate scalar inferred incorrectly.");
+        Check(properties["empty"] != null && properties["empty"]!["type"] == null && properties["Name"] != null, "Null or case-sensitive property was lost.");
+        Check(properties["nested"]!["properties"]!["active"]!["type"]!.ToString() == "boolean", "Nested duplicate inferred incorrectly.");
+        Check(properties["elements"]!["items"]!["properties"]!["name"]!["type"]!.ToString() == "string", "Array duplicate inferred incorrectly.");
+        Check(document.ToJsonString().Length > 0, "Generated document could not be serialized.");
+    }
+
+    [Test]
     public async Task ConvertsGenericTablesAndSeparatesCreateRequirementsFromResponses()
     {
         DocumentationBuild result = new DocumentationOpenApiBuilder().Build([Page()]);

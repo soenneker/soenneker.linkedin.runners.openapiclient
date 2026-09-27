@@ -265,10 +265,35 @@ public sealed class DocumentationOpenApiBuilder
                 else if (c is '{' or '[') depth++;
                 else if (c is '}' or ']') depth--;
                 if (depth != 0) continue;
-                try { return JsonNode.Parse(text[start..(end + 1)], documentOptions: new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip }); }
+                try
+                {
+                    using JsonDocument document = JsonDocument.Parse(text[start..(end + 1)], new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip });
+                    return MaterializeExample(document.RootElement);
+                }
                 catch (JsonException) { break; }
             }
         }
         return null;
+    }
+
+    private static JsonNode? MaterializeExample(JsonElement element)
+    {
+        // Documentation can repeat property names. Materialize recursively with the last
+        // value winning so JsonObject's lazy dictionary cannot fail during schema inference.
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            var result = new JsonObject();
+            foreach (JsonProperty property in element.EnumerateObject())
+                result[property.Name] = MaterializeExample(property.Value);
+            return result;
+        }
+        if (element.ValueKind == JsonValueKind.Array)
+        {
+            var result = new JsonArray();
+            foreach (JsonElement item in element.EnumerateArray())
+                result.Add(MaterializeExample(item));
+            return result;
+        }
+        return JsonNode.Parse(element.GetRawText());
     }
 }
