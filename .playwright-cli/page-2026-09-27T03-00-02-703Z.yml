@@ -1,0 +1,729 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Skip to main content" [ref=e4] [cursor=pointer]:
+        - /url: "#main"
+      - link "Skip to Ask Learn chat experience" [ref=e5] [cursor=pointer]:
+        - /url: "#"
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - generic [ref=e9]:
+            - heading "Microsoft Ignite" [level=2] [ref=e10]
+            - paragraph [ref=e11]: November 17–20, 2026
+          - link "Register now" [ref=e12] [cursor=pointer]:
+            - /url: https://ignite.microsoft.com/home?wt.mc_ID=msignite26_gmee_corp_np_oo_MSLearnRegLaunch
+            - generic [ref=e15]: Ｔ
+        - button "Dismiss alert" [ref=e16] [cursor=pointer]
+      - generic [ref=e18]:
+        - text: Ｏ Ｐ 
+        - generic [ref=e19]:
+          - link "Microsoft" [ref=e20] [cursor=pointer]:
+            - /url: https://www.microsoft.com
+          - link "Learn" [ref=e27] [cursor=pointer]:
+            - /url: /en-us/
+          - generic [ref=e29]:
+            - navigation "Global" [ref=e31]:
+              - text: Ｒ
+              - list [ref=e32]:
+                - listitem [ref=e33]:
+                  - button "Documentation" [ref=e35] [cursor=pointer]:
+                    - generic [ref=e38]: Ｓ
+                - listitem [ref=e39]:
+                  - button "Training & Labs" [ref=e41] [cursor=pointer]:
+                    - generic [ref=e44]: Ｓ
+                - listitem [ref=e45]:
+                  - button "Q&A" [ref=e47] [cursor=pointer]:
+                    - generic [ref=e50]: Ｓ
+                - listitem [ref=e51]:
+                  - button "Topics" [ref=e53] [cursor=pointer]:
+                    - generic [ref=e56]: Ｓ
+              - text: Ｔ
+            - generic [ref=e57]:
+              - text: Ｐ
+              - button "Open search" [ref=e58] [cursor=pointer]:
+                - generic [ref=e60]: 
+          - link "Sign in" [ref=e61] [cursor=pointer]:
+            - /url: "#"
+  - navigation "Primary" [ref=e66]:
+    - button "Collapse" [expanded] [ref=e68] [cursor=pointer]:
+      - generic [aria-hidden] [ref=e69]:
+        - generic [ref=e70]: ﾝ
+        - text: ﾜ
+  - main [ref=e71]:
+    - generic: Ｏ ，
+    - generic [ref=e72]:
+      - generic [ref=e73]:
+        - generic [ref=e75]:
+          - text: 
+          - group "Breadcrumbs"
+          - generic [ref=e76]:
+            - text: 󿄐 󿄐
+            - button "Ask Learn" [ref=e77] [cursor=pointer]:
+              - generic [ref=e79]: 󿄐
+            - group [ref=e81]:
+              - generic "More actions" [ref=e82] [cursor=pointer]: 
+        - text: ﾁ
+        - heading "Post Schema" [level=1] [ref=e86]
+        - generic: 
+        - generic [ref=e88]:
+          - generic [ref=e90]: ﾃ
+          - button "Summarize this article for me" [ref=e91] [cursor=pointer]
+        - generic [ref=e93]:
+          - button "Expand table" [ref=e95] [cursor=pointer]:
+            - generic [ref=e97]: ﾉ
+          - table "Table 1" [ref=e100]:
+            - rowgroup [ref=e101]:
+              - row [ref=e102]:
+                - columnheader "Field" [ref=e103]
+                - columnheader "Format" [ref=e104]
+                - columnheader "Description" [ref=e105]
+                - columnheader "Required" [ref=e106]
+            - rowgroup [ref=e107]:
+              - row [ref=e108]:
+                - cell "author" [ref=e109]
+                - cell "Person or Organization URN" [ref=e110]
+                - cell [ref=e111]:
+                  - text: Author of the post (can be either posted as member or their company page).
+                  - list [ref=e112]:
+                    - listitem [ref=e113]:
+                      - text: For Person URN, refer
+                      - link "Retrieve Current Member's Profile API" [ref=e114] [cursor=pointer]:
+                        - /url: https://learn.microsoft.com/en-us/linkedin/shared/integrations/people/profile-api?view=li-lms-2026-09#retrieve-current-members-profile
+                      - text: to fetch their
+                      - code [ref=e115]: id
+                      - text: and construct a Person URN in the format of
+                      - code [ref=e116]: "urn:li:person:{id}"
+                      - text: .
+                    - listitem [ref=e117]:
+                      - text: For Organization URN, refer
+                      - link "Find a Member's Organization API" [ref=e118] [cursor=pointer]:
+                        - /url: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/organization-access-control-by-role?view=li-lms-2026-09#find-a-members-organization-access-control-information
+                      - text: to fetch their
+                      - code [ref=e119]: organization
+                      - text: and validate their organization access role.
+                - cell "create-only required" [ref=e120]
+              - row [ref=e121]:
+                - cell "adContext" [ref=e122]
+                - cell [ref=e123]:
+                  - link "adContext" [ref=e124] [cursor=pointer]:
+                    - /url: "#adcontext"
+                  - text: type
+                - cell "The advertising context representing the ads specific metadata (which is related to ads or viral tracking, rendering, etc.), associated with the post. The current usage is for viral posts created from an ad and dark posts. If not set, then the post doesn't have ad specific metadata." [ref=e125]
+                - cell "optional" [ref=e126]
+              - row [ref=e127]:
+                - cell "commentary" [ref=e128]
+                - cell [ref=e129]:
+                  - link [ref=e130] [cursor=pointer]:
+                    - /url: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/little-text-format?view=li-lms-2026-09
+                    - code [ref=e131]: little
+                    - text: text
+                - cell "The user generated commentary for the post." [ref=e132]
+                - cell "required" [ref=e133]
+              - row [ref=e134]:
+                - cell "container" [ref=e135]
+                - cell "URN" [ref=e136]
+                - cell "Container Entity URN that contains user generated content. If not set, the post doesn't belong to a container." [ref=e137]
+                - cell "optional" [ref=e138]
+              - row [ref=e139]:
+                - cell "content" [ref=e140]
+                - cell [ref=e141]:
+                  - link "content" [ref=e142] [cursor=pointer]:
+                    - /url: "#content"
+                  - text: type
+                - cell "The posted content (if any, e.g., video). Optional content indicates a post with only commentary." [ref=e143]
+                - cell "optional" [ref=e144]
+              - row [ref=e145]:
+                - cell "contentLandingPage" [ref=e146]
+                - cell "URL" [ref=e147]
+                - cell [ref=e148]:
+                  - text: Web page that's opened when the member clicks on the associated content. For example, clicking on an image and then linking and taking the user to an associated web page. If empty, no landing page associated with the content. This field is ignored in Campaign Manager UI for article ads and doesn't map to
+                  - code [ref=e149]: Destination URL
+                  - text: field.
+                - cell "Required if the campaign creative has the WEBSITE_VISIT objective - otherwise optional" [ref=e150]
+              - row [ref=e151]:
+                - cell "contentCallToActionLabel" [ref=e152]
+                - cell [ref=e153]:
+                  - text: "Type of ContentCallToActionLabel which has the values of:"
+                  - list [ref=e154]:
+                    - listitem [ref=e155]:
+                      - text: APPLY - Call To Action button on the creative shows
+                      - code [ref=e156]: Apply
+                      - text: .
+                    - listitem [ref=e157]:
+                      - text: DOWNLOAD - Call To Action button on the creative shows
+                      - code [ref=e158]: Download
+                      - text: .
+                    - listitem [ref=e159]:
+                      - text: VIEW_QUOTE - Call To Action button on the creative shows
+                      - code [ref=e160]: View Quote
+                      - text: .
+                    - listitem [ref=e161]:
+                      - text: LEARN_MORE - Call To Action button on the creative shows
+                      - code [ref=e162]: Learn More
+                      - text: .
+                    - listitem [ref=e163]:
+                      - text: SIGN_UP - Call To Action button on the creative shows
+                      - code [ref=e164]: Sign Up
+                      - text: .
+                    - listitem [ref=e165]:
+                      - text: SUBSCRIBE - Call To Action button on the creative shows
+                      - code [ref=e166]: Subscribe
+                      - text: .
+                    - listitem [ref=e167]:
+                      - text: REGISTER - Call To Action button on the creative shows
+                      - code [ref=e168]: Register
+                      - text: .
+                    - listitem [ref=e169]:
+                      - text: JOIN - Call To Action button on the creative shows
+                      - code [ref=e170]: Join
+                      - text: .
+                    - listitem [ref=e171]:
+                      - text: ATTEND - Call To Action button on the creative shows
+                      - code [ref=e172]: Attend
+                      - text: .
+                    - listitem [ref=e173]:
+                      - text: REQUEST_DEMO - Call To Action button on the creative shows
+                      - code [ref=e174]: Register Demo
+                      - text: .
+                    - listitem [ref=e175]:
+                      - text: SEE_MORE - Call To Action button on the creative shows
+                      - code [ref=e176]: See More
+                      - text: .
+                    - listitem [ref=e177]:
+                      - text: BUY_NOW - Call To Action button on the creative shows
+                      - code [ref=e178]: Buy Now
+                      - text: .
+                      - code [ref=e179]: Note
+                      - text: ": This value is supported only for API Versions starting from 202504 and later."
+                    - listitem [ref=e180]:
+                      - text: SHOP_NOW - Call To Action button on the creative shows
+                      - code [ref=e181]: Shop Now
+                      - text: .
+                      - code [ref=e182]: Note
+                      - text: ": This value is supported only for API Versions starting from 202504 and later."
+                - cell "The call to action label which a member can act upon that's associated with the content. If empty, there's an optional call to action associated with the content." [ref=e183]
+                - cell "optional" [ref=e184]
+              - row [ref=e185]:
+                - cell "createdAt" [ref=e186]
+                - cell "Time at which the resource was created in milliseconds since epoch." [ref=e187]
+                - cell "Time" [ref=e188]
+                - cell "read-only" [ref=e189]
+              - row [ref=e190]:
+                - cell "distribution" [ref=e191]
+                - cell [ref=e192]:
+                  - link "distribution" [ref=e193] [cursor=pointer]:
+                    - /url: "#distribution"
+                  - text: Type
+                - cell "Distribution of the post both in LinkedIn and externally" [ref=e194]
+                - cell "create-only required" [ref=e195]
+              - row [ref=e196]:
+                - cell "id" [ref=e197]
+                - cell "Unique ID for the object. Can contain more URN types (in development)" [ref=e198]
+                - cell "ugcPostUrn or shareUrn" [ref=e199]
+                - cell "read-only" [ref=e200]
+              - row [ref=e201]:
+                - cell "isReshareDisabledByAuthor" [ref=e202]
+                - cell "boolean default=false" [ref=e203]
+                - cell "Indicates whether resharing of the post has been disabled by the author. If this field is set to true, the post can't be reshared in any context. If false, other reshare restrictions may still apply due to the post's visibility, container, or content type." [ref=e204]
+                - cell "optional" [ref=e205]
+              - row [ref=e206]:
+                - cell "lastModifiedAt" [ref=e207]
+                - cell "Time at which the resource was last modified in milliseconds since epoch." [ref=e208]
+                - cell "Time" [ref=e209]
+                - cell "read-only" [ref=e210]
+              - row [ref=e211]:
+                - cell "lifecycleState" [ref=e212]
+                - cell [ref=e213]:
+                  - text: "The state of the content. PUBLISHED is the only accepted field during creation. The following values can be returned in responses:"
+                  - list [ref=e214]:
+                    - listitem [ref=e215]: DRAFT - Represents content that's accessible only to the author and is not yet published.
+                    - listitem [ref=e216]: PUBLISHED - Represents content that's accessible to all entities. This is the only accepted field during creation.
+                    - listitem [ref=e217]: PUBLISH_REQUESTED - Represents content that has been submitted for publishing but is not yet ready for rendering. The content will be published asynchronously once the processing has successfully completed.
+                    - listitem [ref=e218]: PUBLISH_FAILED - Represents content that has been submitted for publishing but was not processed. An edit is required in order to re-attempt publishing.
+                - cell "Enum string" [ref=e219]
+                - cell "required" [ref=e220]
+              - row [ref=e221]:
+                - cell "lifecycleStateInfo" [ref=e222]
+                - cell [ref=e223]:
+                  - text: optional
+                  - link "lifecycleStateInfo" [ref=e224] [cursor=pointer]:
+                    - /url: "#lifecyclestateinfo"
+                - cell "Additional information about the lifecycle state for PUBLISH_REQUESTED or PUBLISH_FAILED." [ref=e225]
+                - cell "optional" [ref=e226]
+              - row [ref=e227]:
+                - cell "publishedAt" [ref=e228]
+                - cell "The time at which the content was published represented in epoch time." [ref=e229]
+                - cell "long" [ref=e230]
+                - cell "Optional" [ref=e231]
+              - row [ref=e232]:
+                - cell "reshareContext" [ref=e233]
+                - cell "optional reshareContext" [ref=e234]
+                - cell [ref=e235]:
+                  - text: "The context in which the post was re-shared - only be set for re-shares. This field contains information about the reshare context:"
+                  - list [ref=e236]:
+                    - listitem [ref=e237]: "parent: URN type the direct parent of the post (i.e.,the post that was re-shared)."
+                    - listitem [ref=e238]: "root: The greatest ancestor of the post - may also be the parent. This field is derived from the parent and supports the same URN types. root is read-only."
+                - cell "optional" [ref=e239]
+              - row [ref=e240]:
+                - cell "visibility" [ref=e241]
+                - cell [ref=e242]:
+                  - text: Visibility restrictions on content. Type of
+                  - code [ref=e243]: MemberNetworkVisibility
+                  - text: "with the following values:"
+                  - list [ref=e244]:
+                    - listitem [ref=e245]: CONNECTIONS - Represents 1st degree network of owner.
+                    - listitem [ref=e246]: PUBLIC - Anyone can view this.
+                    - listitem [ref=e247]: LOGGED_IN - Viewable by logged in members only.
+                    - listitem [ref=e248]: CONTAINER - Visibility is delegated to the owner of the container entity. For example, posts within a group are delegated to the groups authorization API for visibility authorization.
+                - cell "MemberNetwork Visibility" [ref=e249]
+                - cell "required" [ref=e250]
+          - generic [ref=e251]:
+            - 'link "Section titled: adContext" [ref=e252] [cursor=pointer]':
+              - /url: "#adcontext"
+              - text: 
+            - heading "adContext" [level=2] [ref=e253]
+          - paragraph [ref=e254]: Represents the ads specific metadata (related to ads or viral tracking, rendering, etc.), associated with the post.
+          - button "Expand table" [ref=e256] [cursor=pointer]:
+            - generic [ref=e258]: ﾉ
+          - table "adContext" [ref=e261]:
+            - rowgroup [ref=e262]:
+              - row [ref=e263]:
+                - columnheader "Field" [ref=e264]
+                - columnheader "Format" [ref=e265]
+                - columnheader "Description" [ref=e266]
+                - columnheader "Required" [ref=e267]
+            - rowgroup [ref=e268]:
+              - row [ref=e269]:
+                - cell "dscAdAccount" [ref=e270]
+                - cell "Sponsored Account URN" [ref=e271]
+                - cell "The Ad Account that created the Direct Sponsored Content (DSC). Read-only." [ref=e272]
+                - cell "This field is required when isDsc is true, optional otherwise." [ref=e273]
+              - row [ref=e274]:
+                - cell [ref=e275]:
+                  - link "dscAdType" [ref=e276] [cursor=pointer]:
+                    - /url: "#dscadtype"
+                - cell "String, Type of the content" [ref=e277]
+                - cell "The type of DSC (e.g. VIDEO, STANDARD, CAROUSEL, etc.). Read-only." [ref=e278]
+                - cell "This field is required when isDsc is true, optional otherwise." [ref=e279]
+              - row [ref=e280]:
+                - cell "dscName" [ref=e281]
+                - cell "String" [ref=e282]
+                - cell "Plain text name of the DSC post. Only applicable for DSC. If isDSC is true and dscName is empty, it has an optional name." [ref=e283]
+                - cell "Optional" [ref=e284]
+              - row [ref=e285]:
+                - cell [ref=e286]:
+                  - link "dscStatus" [ref=e287] [cursor=pointer]:
+                    - /url: "#dscstatus"
+                - cell "String" [ref=e288]
+                - cell "The status of the advertising company content. Representing whether the content is usable from the advertiser's perspective as a DSC." [ref=e289]
+                - cell "This field is required when isDsc is true; optional otherwise." [ref=e290]
+              - row [ref=e291]:
+                - cell "isDsc" [ref=e292]
+                - cell "boolean" [ref=e293]
+                - cell "Whether or not this post is DSC. A posted DSC is created for the sole purpose of sponsorship. Read-only." [ref=e294]
+                - cell "optional" [ref=e295]
+          - generic [ref=e296]:
+            - 'link "Section titled: dscAdType" [ref=e297] [cursor=pointer]':
+              - /url: "#dscadtype"
+              - text: 
+            - heading "dscAdType" [level=3] [ref=e298]
+          - paragraph [ref=e299]: The post's ad content type.
+          - button "Expand table" [ref=e301] [cursor=pointer]:
+            - generic [ref=e303]: ﾉ
+          - table "dscAdType" [ref=e306]:
+            - rowgroup [ref=e307]:
+              - row [ref=e308]:
+                - columnheader "Enumeration Name" [ref=e309]
+                - columnheader "Description" [ref=e310]
+            - rowgroup [ref=e311]:
+              - row [ref=e312]:
+                - cell "VIDEO" [ref=e313]
+                - cell "Contains video content." [ref=e314]
+              - row [ref=e315]:
+                - cell "STANDARD" [ref=e316]
+                - cell "Contains single image, text, or article." [ref=e317]
+              - row [ref=e318]:
+                - cell "CAROUSEL" [ref=e319]
+                - cell "Contains carousel. Post contains a reference to a collection where the collection can only be images." [ref=e320]
+              - row [ref=e321]:
+                - cell "JOB_POSTING" [ref=e322]
+                - cell "Contains single content containing a LinkedIn job posting." [ref=e323]
+              - row [ref=e324]:
+                - cell "NATIVE_DOCUMENT" [ref=e325]
+                - cell [ref=e326]:
+                  - text: "Contains native document uploaded to LinkedIn. The following file types are supported:"
+                  - list [ref=e327]:
+                    - listitem [ref=e328]: PPT
+                    - listitem [ref=e329]: PPTX
+                    - listitem [ref=e330]: DOC
+                    - listitem [ref=e331]: DOCX
+                    - listitem [ref=e332]: PDF.
+              - row [ref=e333]:
+                - cell "EVENT" [ref=e334]
+                - cell "Contains single content containing a LinkedIn event." [ref=e335]
+          - generic [ref=e336]:
+            - 'link "Section titled: dscStatus" [ref=e337] [cursor=pointer]':
+              - /url: "#dscstatus"
+              - text: 
+            - heading "dscStatus" [level=3] [ref=e338]
+          - paragraph [ref=e339]: Enables you to toggle the status of the advertising company content. It indicates whether the content is usable from the advertiser's perspective.
+          - button "Expand table" [ref=e341] [cursor=pointer]:
+            - generic [ref=e343]: ﾉ
+          - table "dscStatus" [ref=e346]:
+            - rowgroup [ref=e347]:
+              - row [ref=e348]:
+                - columnheader "Enumeration Name" [ref=e349]
+                - columnheader "Description" [ref=e350]
+            - rowgroup [ref=e351]:
+              - row [ref=e352]:
+                - cell "ACTIVE" [ref=e353]
+                - cell "The content can be served." [ref=e354]
+              - row [ref=e355]:
+                - cell "ARCHIVED" [ref=e356]
+                - cell "The content is inactive and not intended for use, its creatives are cancelled. Archiving currently can't be undone" [ref=e357]
+          - generic [ref=e358]:
+            - 'link "Section titled: Content" [ref=e359] [cursor=pointer]':
+              - /url: "#content"
+              - text: 
+            - heading "Content" [level=3] [ref=e360]
+          - button "Expand table" [ref=e362] [cursor=pointer]:
+            - generic [ref=e364]: ﾉ
+          - table "Content" [ref=e367]:
+            - rowgroup [ref=e368]:
+              - row [ref=e369]:
+                - columnheader "Field" [ref=e370]
+                - columnheader "Format" [ref=e371]
+                - columnheader "Description" [ref=e372]
+            - rowgroup [ref=e373]:
+              - row [ref=e374]:
+                - cell [ref=e375]:
+                  - link "media" [ref=e376] [cursor=pointer]:
+                    - /url: "#media"
+                - cell "MediaContent" [ref=e377]
+                - cell "Details of the Media content such as Image, Video." [ref=e378]
+              - row [ref=e379]:
+                - cell [ref=e380]:
+                  - link "poll" [ref=e381] [cursor=pointer]:
+                    - /url: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/poll-post-api?view=li-lms-2026-09
+                - cell "PollContent" [ref=e382]
+                - cell "Details of Poll content (can only be non-sponsored)." [ref=e383]
+              - row [ref=e384]:
+                - cell [ref=e385]:
+                  - link "multiImage" [ref=e386] [cursor=pointer]:
+                    - /url: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/multiimage-post-api?view=li-lms-2026-09
+                - cell "MultiImageContent" [ref=e387]
+                - cell "Details of MultiImage content (can only be non-sponsored)." [ref=e388]
+              - row [ref=e389]:
+                - cell [ref=e390]:
+                  - link "article" [ref=e391] [cursor=pointer]:
+                    - /url: https://learn.microsoft.com/en-us/linkedin/marketing/integrations/ads/advertising-targeting/version/article-ads-integrations?view=li-lms-2026-09
+                - cell "ArticleContent" [ref=e392]
+                - cell "Details of Article content (can be either non-sponsored or sponsored)." [ref=e393]
+              - row [ref=e394]:
+                - cell [ref=e395]:
+                  - link "carousel" [ref=e396] [cursor=pointer]:
+                    - /url: https://learn.microsoft.com/en-us/linkedin/marketing/integrations/ads/advertising-targeting/version/carousel-ads-integrations?view=li-lms-2026-09
+                - cell "CarouselContent" [ref=e397]
+                - cell "Details of Carousel content (Can only be sponsored)." [ref=e398]
+              - row [ref=e399]:
+                - cell [ref=e400]:
+                  - link "celebration" [ref=e401] [cursor=pointer]:
+                    - /url: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/celebration-post-api?view=li-lms-2026-09
+                - cell "CelebrationContent" [ref=e402]
+                - cell "Details of Celebration content (can only be non-sponsored and currently, celebration post can't be created through external api)." [ref=e403]
+              - row [ref=e404]:
+                - cell [ref=e405]:
+                  - link "reference" [ref=e406] [cursor=pointer]:
+                    - /url: "#reference"
+                - cell "ReferenceContent" [ref=e407]
+                - cell "Details of Reference content like event and appreciation." [ref=e408]
+          - generic [ref=e409]:
+            - 'link "Section titled: Reference" [ref=e410] [cursor=pointer]':
+              - /url: "#reference"
+              - text: 
+            - heading "Reference" [level=3] [ref=e411]
+          - button "Expand table" [ref=e413] [cursor=pointer]:
+            - generic [ref=e415]: ﾉ
+          - table "Reference" [ref=e418]:
+            - rowgroup [ref=e419]:
+              - row [ref=e420]:
+                - columnheader "Field" [ref=e421]
+                - columnheader "Format" [ref=e422]
+                - columnheader "Description" [ref=e423]
+            - rowgroup [ref=e424]:
+              - row [ref=e425]:
+                - cell "id" [ref=e426]
+                - cell "URN" [ref=e427]
+                - cell [ref=e428]:
+                  - text: The URN of the reference that represents a reference such as an event (e.g.
+                  - code [ref=e429]: urn:li:reference:123
+                  - text: ).
+          - generic [ref=e430]:
+            - 'link "Section titled: Media" [ref=e431] [cursor=pointer]':
+              - /url: "#media"
+              - text: 
+            - heading "Media" [level=3] [ref=e432]
+          - button "Expand table" [ref=e434] [cursor=pointer]:
+            - generic [ref=e436]: ﾉ
+          - table "Media" [ref=e439]:
+            - rowgroup [ref=e440]:
+              - row [ref=e441]:
+                - columnheader "Field" [ref=e442]
+                - columnheader "Format" [ref=e443]
+                - columnheader "Description" [ref=e444]
+            - rowgroup [ref=e445]:
+              - row [ref=e446]:
+                - cell "id" [ref=e447]
+                - cell "URN" [ref=e448]
+                - cell "The URN of the media such as image or video." [ref=e449]
+              - row [ref=e450]:
+                - cell "title" [ref=e451]
+                - cell "String" [ref=e452]
+                - cell "The media title (Required field for Documents API)." [ref=e453]
+              - row [ref=e454]:
+                - cell "altText" [ref=e455]
+                - cell "String" [ref=e456]
+                - cell "The alternate text for the media. None if empty. Optional." [ref=e457]
+          - generic [ref=e458]:
+            - 'link "Section titled: distribution" [ref=e459] [cursor=pointer]':
+              - /url: "#distribution"
+              - text: 
+            - heading "distribution" [level=3] [ref=e460]
+          - button "Expand table" [ref=e462] [cursor=pointer]:
+            - generic [ref=e464]: ﾉ
+          - table "distribution" [ref=e467]:
+            - rowgroup [ref=e468]:
+              - row [ref=e469]:
+                - columnheader "Field" [ref=e470]
+                - columnheader "Format" [ref=e471]
+                - columnheader "Description" [ref=e472]
+            - rowgroup [ref=e473]:
+              - row [ref=e474]:
+                - cell "feedDistribution" [ref=e475]
+                - cell "feedDistribution type" [ref=e476]
+                - cell [ref=e477]:
+                  - text: Specifies the feeds distributed to within LinkedIn.
+                  - list [ref=e478]:
+                    - listitem [ref=e479]: NONE-Do not distribute within LinkedIn via feed.
+                    - listitem [ref=e480]: MAIN_FEED-Distribute to the flagship feed, and container entity feed if applicable.
+              - row [ref=e481]:
+                - cell [ref=e482]:
+                  - link "targetEntities" [ref=e483] [cursor=pointer]:
+                    - /url: "#targetentities"
+                - cell "Optional target" [ref=e484]
+                - cell "Intended audience for this post. The target entities targeted for distribution. The distribution is an OR of the targets in the array." [ref=e485]
+              - row [ref=e486]:
+                - cell "thirdPartyDistributionChannels" [ref=e487]
+                - cell "Optional" [ref=e488]
+                - cell "External distribution channels that this post is distributed to (e.g., Twitter, Tencent, Weibo). Empty array indicates the post is not externally distributed." [ref=e489]
+          - generic [ref=e490]:
+            - 'link "Section titled: targetEntities" [ref=e491] [cursor=pointer]':
+              - /url: "#targetentities"
+              - text: 
+            - heading "targetEntities" [level=3] [ref=e492]
+          - button "Expand table" [ref=e494] [cursor=pointer]:
+            - generic [ref=e496]: ﾉ
+          - table "targetEntities" [ref=e499]:
+            - rowgroup [ref=e500]:
+              - row [ref=e501]:
+                - columnheader "Field" [ref=e502]
+                - columnheader "Sub-Field" [ref=e503]
+                - columnheader "Format" [ref=e504]
+                - columnheader "Description" [ref=e505]
+            - rowgroup [ref=e506]:
+              - row [ref=e507]:
+                - cell "targetedEntities" [ref=e508]
+                - cell [ref=e509]
+                - cell "Entities targeted for distribution. Structured as an object containing multiple arrays of targeting entity URNs that function like a series of OR conditionals." [ref=e510]
+                - cell "Array of Targets (refer the following)" [ref=e511]
+              - row [ref=e512]:
+                - cell [ref=e513]
+                - cell "degrees" [ref=e514]
+                - cell "Standardized degrees to be targeted." [ref=e515]
+                - cell [ref=e516]:
+                  - text: Array of
+                  - link "Degree URN" [ref=e517] [cursor=pointer]:
+                    - /url: https://learn.microsoft.com/en-us/linkedin/shared/references/v2/standardized-data/degrees?view=li-lms-2026-09&context=linkedin%2Fmarketing%2Fcontext
+              - row [ref=e518]:
+                - cell [ref=e519]
+                - cell "fieldsOfStudy" [ref=e520]
+                - cell "Standardized fields of study to be targeted." [ref=e521]
+                - cell [ref=e522]:
+                  - text: Array of
+                  - link "FieldOfStudy URN" [ref=e523] [cursor=pointer]:
+                    - /url: https://learn.microsoft.com/en-us/linkedin/shared/references/v2/standardized-data/fields-of-study?view=li-lms-2026-09&context=linkedin%2Fmarketing%2Fcontext
+              - row [ref=e524]:
+                - cell [ref=e525]
+                - cell "industries" [ref=e526]
+                - cell "Industries to be targeted." [ref=e527]
+                - cell [ref=e528]:
+                  - text: Array of
+                  - link "Industry URN" [ref=e529] [cursor=pointer]:
+                    - /url: https://learn.microsoft.com/en-us/linkedin/shared/references/v2/standardized-data/industrytaxonomyversions?view=li-lms-2026-09
+              - row [ref=e530]:
+                - cell [ref=e531]
+                - cell "interfaceLocales" [ref=e532]
+                - cell "Interface locales to be targeted." [ref=e533]
+                - cell [ref=e534]:
+                  - text: Array of
+                  - link "Locale" [ref=e535] [cursor=pointer]:
+                    - /url: https://learn.microsoft.com/en-us/linkedin/shared/references/v2/object-types?view=li-lms-2026-09&context=linkedin%2Fmarketing%2Fcontext#locale
+              - row [ref=e536]:
+                - cell [ref=e537]
+                - cell "jobFunctions" [ref=e538]
+                - cell "Top level groupings of super titles to be targeted." [ref=e539]
+                - cell [ref=e540]:
+                  - text: Array of
+                  - link "Function URN" [ref=e541] [cursor=pointer]:
+                    - /url: https://learn.microsoft.com/en-us/linkedin/shared/references/v2/standardized-data/functions?view=li-lms-2026-09
+              - row [ref=e542]:
+                - cell [ref=e543]
+                - cell "locations" [ref=e544]
+                - cell [ref=e545]:
+                  - text: Deprecated. Use
+                  - code [ref=e546]: geoLocations
+                  - text: "field instead for the targeting location. URNs can be: countryGroup, country, state, and region"
+                - cell [ref=e547]:
+                  - text: Array of
+                  - link "Location URN" [ref=e548] [cursor=pointer]:
+                    - /url: https://learn.microsoft.com/en-us/linkedin/shared/references/v2/standardized-data/locations?view=li-lms-2026-09&context=linkedin%2Fmarketing%2Fcontext
+              - row [ref=e549]:
+                - cell [ref=e550]
+                - cell "geoLocations" [ref=e551]
+                - cell "GeoLocations for targeting." [ref=e552]
+                - cell [ref=e553]:
+                  - text: Array of Geo URN
+                  - link "Learn more" [ref=e554] [cursor=pointer]:
+                    - /url: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/binggeo-migration-organic-targeting?view=li-lms-2026-09
+              - row [ref=e555]:
+                - cell [ref=e556]
+                - cell "schools" [ref=e557]
+                - cell "Deprecated. Use organizations field instead. Standardized schools for targeting." [ref=e558]
+                - cell "Array of School URN" [ref=e559]
+              - row [ref=e560]:
+                - cell [ref=e561]
+                - cell "organizations" [ref=e562]
+                - cell [ref=e563]:
+                  - text: School organizations for targeting. Retrieve a school organization URN using the
+                  - link "Organization Lookup API" [ref=e564] [cursor=pointer]:
+                    - /url: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/organization-lookup-api?view=li-lms-2026-09#retrieve-organizations
+                - cell "Array of Organization URN" [ref=e565]
+              - row [ref=e566]:
+                - cell [ref=e567]
+                - cell "seniorities" [ref=e568]
+                - cell "Seniorities to be targeted." [ref=e569]
+                - cell [ref=e570]:
+                  - text: Array of
+                  - link "Seniority URN" [ref=e571] [cursor=pointer]:
+                    - /url: https://learn.microsoft.com/en-us/linkedin/shared/references/v2/standardized-data/seniorities?view=li-lms-2026-09&context=linkedin%2Fmarketing%2Fcontext
+              - row [ref=e572]:
+                - cell [ref=e573]
+                - cell "staffCountRanges" [ref=e574]
+                - cell [ref=e575]:
+                  - text: "Organization sizes for targeting. Consists of the following enum values:"
+                  - list [ref=e576]:
+                    - listitem [ref=e577]: SIZE_1
+                    - listitem [ref=e578]: SIZE_2_TO_10
+                    - listitem [ref=e579]: SIZE_11_TO_50
+                    - listitem [ref=e580]: SIZE_51_TO_200
+                    - listitem [ref=e581]: SIZE_201_TO_500
+                    - listitem [ref=e582]: SIZE_501_TO_1000
+                    - listitem [ref=e583]: SIZE_1001_TO_5000
+                    - listitem [ref=e584]: SIZE_5001_TO_10000
+                    - listitem [ref=e585]: SIZE_10001_OR_MORE
+                - cell "Array of StaffCountRange" [ref=e586]
+          - generic [ref=e587]:
+            - paragraph [ref=e588]:
+              - generic [ref=e590]: ７
+              - text: Note
+            - paragraph [ref=e591]:
+              - text: The audience you target for your share must be greater than 300 members. See
+              - link "Create Targeted Organic Posts" [ref=e592] [cursor=pointer]:
+                - /url: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api?view=li-lms-2026-09#create-targeted-organic-posts
+              - text: for more information.
+          - generic [ref=e593]:
+            - 'link "Section titled: lifecycleStateInfo" [ref=e594] [cursor=pointer]':
+              - /url: "#lifecyclestateinfo"
+              - text: 
+            - heading "lifecycleStateInfo" [level=3] [ref=e595]
+          - paragraph [ref=e596]: This section provides additional information about the lifecycle state.
+          - button "Expand table" [ref=e598] [cursor=pointer]:
+            - generic [ref=e600]: ﾉ
+          - table "lifecycleStateInfo" [ref=e603]:
+            - rowgroup [ref=e604]:
+              - row [ref=e605]:
+                - columnheader "Field" [ref=e606]
+                - columnheader "Format" [ref=e607]
+                - columnheader "Description" [ref=e608]
+            - rowgroup [ref=e609]:
+              - row [ref=e610]:
+                - cell "contentStatus" [ref=e611]
+                - cell "optional ProcessingState" [ref=e612]
+                - cell "Status for post content. If absent, then state doesn't wait for content processing. PENDING, PROCESSING, and FAILED are available values. If processing completes UGC transitions to PUBLISHED and the contentStatus is null." [ref=e613]
+              - row [ref=e614]:
+                - cell "isEditedByAuthor" [ref=e615]
+                - cell "boolean" [ref=e616]
+                - cell [ref=e617]
+              - row [ref=e618]:
+                - cell "default=false" [ref=e619]
+                - cell "Indicates whether a post was edited by the author after publishing. Applicable for UserGeneratedContentLifecycleState value of PUBLISHED only." [ref=e620]
+                - cell [ref=e621]
+              - row [ref=e622]:
+                - cell "reviewStatus" [ref=e623]
+                - cell "optional ProcessingState" [ref=e624]
+                - cell "Review status of the post. If not present, then the state doesn't wait upon review. PENDING, PROCESSING, and FAILED are the possible values for this field. If processing completes the UGC transitions to PUBLISHED and reviewStatus is null. Applicable for lifecycle state values of PUBLISH_REQUESTED and PUBLISHED_FAILED only." [ref=e625]
+        - alert [ref=e626]: Reading mode disabled
+        - status [ref=e627]
+        - text:   
+      - generic [ref=e628]:
+        - separator [ref=e629]
+        - list [ref=e630]:
+          - listitem [ref=e631]:
+            - generic [ref=e632]: Last updated on 04/30/2026
+  - complementary "Additional resources" [ref=e634]:
+    - generic [ref=e638]:
+      - paragraph [ref=e639]: Was this page helpful?
+      - generic [ref=e640]:
+        - button "This article is helpful" [ref=e641] [cursor=pointer]:
+          - generic [ref=e643]: 
+        - button "This article is not helpful" [ref=e644] [cursor=pointer]:
+          - generic [ref=e646]: 
+        - text: 
+  - text: 󿄐 Ｐ
+  - contentinfo [ref=e648]:
+    - generic [ref=e649]:
+      - link "Content language selector. Currently set to English (United States)." [ref=e650] [cursor=pointer]:
+        - /url: /en-us/locale?target=https%3A%2F%2Flearn.microsoft.com%2Fen-us%2Flinkedin%2Fmarketing%2Fcommunity-management%2Fshares%2Fpost-api-schema%3Fview%3Dli-lms-2026-09
+        - generic [ref=e652]: 
+        - generic [ref=e653]: English (United States)
+      - link "Your Privacy Choices" [ref=e655] [cursor=pointer]:
+        - /url: https://aka.ms/yourcaliforniaprivacychoices
+      - button "Theme" [ref=e664] [cursor=pointer]:
+        - generic [ref=e666]: ０
+        - generic [ref=e669]: Ｓ
+    - list [ref=e670]:
+      - listitem [ref=e671]:
+        - link "AI Disclaimer" [ref=e672] [cursor=pointer]:
+          - /url: https://learn.microsoft.com/en-us/principles-for-ai-generated-content
+      - listitem [ref=e673]:
+        - link "Previous Versions" [ref=e674] [cursor=pointer]:
+          - /url: https://learn.microsoft.com/en-us/previous-versions/
+      - listitem [ref=e675]:
+        - link "Blog" [ref=e676] [cursor=pointer]:
+          - /url: https://techcommunity.microsoft.com/t5/microsoft-learn-blog/bg-p/MicrosoftLearnBlog
+      - listitem [ref=e677]:
+        - link "Contribute" [ref=e678] [cursor=pointer]:
+          - /url: https://learn.microsoft.com/en-us/contribute
+      - listitem [ref=e679]:
+        - link "Privacy" [ref=e680] [cursor=pointer]:
+          - /url: https://go.microsoft.com/fwlink/?LinkId=521839
+      - listitem [ref=e681]:
+        - link "Consumer Health Privacy" [ref=e682] [cursor=pointer]:
+          - /url: https://go.microsoft.com/fwlink/?linkid=2259814
+      - listitem [ref=e683]:
+        - link "Terms of Use" [ref=e684] [cursor=pointer]:
+          - /url: https://learn.microsoft.com/en-us/legal/termsofuse
+      - listitem [ref=e685]:
+        - link "Trademarks" [ref=e686] [cursor=pointer]:
+          - /url: https://www.microsoft.com/legal/intellectualproperty/Trademarks/
+      - listitem [ref=e687]: © Microsoft 2026
