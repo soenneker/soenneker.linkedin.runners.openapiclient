@@ -5,6 +5,6 @@ namespace Soenneker.LinkedIn.Runners.OpenApiClient.Utils.Abstract;
 
 public interface IFileOperationsUtil
 {
-    /// <summary>Downloads and converts the LinkedIn Postman collections, merges and fixes their OpenAPI documents, then regenerates and publishes the client source.</summary>
+    /// <summary>Builds OpenAPI from official Learn documentation with Playwright. Writes local artifacts in spec-only mode; otherwise fixes the spec, regenerates changed client source and publishes the update.</summary>
     ValueTask Process(CancellationToken cancellationToken = default);
 }

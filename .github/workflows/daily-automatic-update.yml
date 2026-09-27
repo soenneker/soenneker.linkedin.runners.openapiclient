@@ -44,6 +44,13 @@ jobs:
       - name: Build
         run: dotnet build src/Soenneker.LinkedIn.Runners.OpenApiClient/Soenneker.LinkedIn.Runners.OpenApiClient.csproj --configuration Release --no-restore
 
+      - name: Restore documentation baseline
+        uses: actions/cache/restore@v4
+        with:
+          path: output/playwright/
+          key: linkedin-docs-v1-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: linkedin-docs-v1-${{ github.ref_name }}-
+
       - name: Log in to NuGet
         uses: NuGet/login@v1
         id: nuget-login
@@ -54,3 +61,18 @@ jobs:
         env:
           NUGET__TOKEN: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         run: dotnet run --project src/Soenneker.LinkedIn.Runners.OpenApiClient/Soenneker.LinkedIn.Runners.OpenApiClient.csproj --configuration Release --no-restore --no-build --verbosity normal
+
+      - name: Upload documentation and schema changes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linkedin-documentation
+          path: output/playwright/
+          if-no-files-found: ignore
+
+      - name: Save documentation baseline
+        if: always() && hashFiles('output/playwright/documentation/manifest.json') != '' && hashFiles('output/playwright/openapi.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: output/playwright/
+          key: linkedin-docs-v1-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}

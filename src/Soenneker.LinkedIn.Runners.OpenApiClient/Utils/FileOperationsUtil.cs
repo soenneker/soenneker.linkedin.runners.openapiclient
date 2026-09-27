@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.OpenApi;
+using Microsoft.Extensions.Configuration;
+using Soenneker.LinkedIn.Runners.OpenApiClient.Documentation;
 using Soenneker.Extensions.String;
 using Soenneker.Git.Util.Abstract;
 using Soenneker.LinkedIn.Runners.OpenApiClient.Utils.Abstract;
@@ -14,9 +15,6 @@ using Soenneker.Kiota.Util.Abstract;
 using Soenneker.OpenApi.Fixer.Abstract;
 using Soenneker.Utils.Directory.Abstract;
 using Soenneker.Utils.File.Abstract;
-using Soenneker.Utils.File.Download.Abstract;
-using Soenneker.Postman.Converter.Abstract;
-using Soenneker.OpenApi.Merger.Abstract;
 using System.Collections.Generic;
 
 namespace Soenneker.LinkedIn.Runners.OpenApiClient.Utils;
@@ -28,55 +26,73 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
     private readonly IDotnetUtil _dotnetUtil;
     private readonly IKiotaUtil _kiotaUtil;
     private readonly IOpenApiFixer _openApiFixer;
-    private readonly IFileDownloadUtil _fileDownloadUtil;
     private readonly IFileUtil _fileUtil;
     private readonly IDirectoryUtil _directoryUtil;
-    private readonly IPostmanConverter _postmanConverter;
-    private readonly IOpenApiMerger _openApiMerger;
+    private readonly IDocumentationSpecGenerator _specGenerator;
+    private readonly DocumentationOptions _documentationOptions;
 
     public FileOperationsUtil(ILogger<FileOperationsUtil> logger, IGitUtil gitUtil, IDotnetUtil dotnetUtil,
-        IFileDownloadUtil fileDownloadUtil, IFileUtil fileUtil, IDirectoryUtil directoryUtil, IKiotaUtil kiotaUtil, IOpenApiFixer openApiFixer,
-        IPostmanConverter postmanConverter, IOpenApiMerger openApiMerger)
+        IFileUtil fileUtil, IDirectoryUtil directoryUtil, IKiotaUtil kiotaUtil, IOpenApiFixer openApiFixer,
+        IDocumentationSpecGenerator specGenerator, IConfiguration configuration)
     {
         _logger = logger;
         _gitUtil = gitUtil;
         _dotnetUtil = dotnetUtil;
         _kiotaUtil = kiotaUtil;
         _openApiFixer = openApiFixer;
-        _fileDownloadUtil = fileDownloadUtil;
         _fileUtil = fileUtil;
         _directoryUtil = directoryUtil;
-        _postmanConverter = postmanConverter;
-        _openApiMerger = openApiMerger;
+        _specGenerator = specGenerator;
+        _documentationOptions = configuration.GetSection("Documentation").Get<DocumentationOptions>() ?? new DocumentationOptions();
     }
 
     public async ValueTask Process(CancellationToken cancellationToken = default)
     {
-        string gitDirectory = await _gitUtil.CloneToTempDirectory($"https://github.com/soenneker/{Constants.Library.ToLowerInvariantFast()}", cancellationToken: cancellationToken);
-
-        string collectionsDirectory = Path.Combine(gitDirectory, "postman");
-        await _directoryUtil.Create(collectionsDirectory, cancellationToken: cancellationToken);
-        var mergeInputs = new List<(string prefix, string filePath)>();
-
-        foreach ((string prefix, string collectionId) in Constants.PostmanCollections)
+        _documentationOptions.Validate();
+        if (_documentationOptions.SpecOnly)
         {
-            string collectionPath = Path.Combine(collectionsDirectory, $"{prefix}.postman.json");
-            string openApiPath = Path.Combine(collectionsDirectory, $"{prefix}.openapi.json");
-            await _fileUtil.DeleteIfExists(collectionPath, cancellationToken: cancellationToken);
-            await _fileUtil.DeleteIfExists(openApiPath, cancellationToken: cancellationToken);
-
-            string? downloadedPath = await _fileDownloadUtil.Download($"https://www.postman.com/collections/{collectionId}",
-                collectionPath, fileExtension: ".json", cancellationToken: cancellationToken);
-            if (downloadedPath == null)
-                throw new InvalidOperationException($"LinkedIn Postman collection download failed: {prefix}.");
-
-            await _postmanConverter.SaveOpenApiFile(downloadedPath, openApiPath, cancellationToken);
-            mergeInputs.Add((prefix, openApiPath));
+            string output = _documentationOptions.OutputDirectory ?? Path.Combine(Environment.CurrentDirectory, "output", "playwright");
+            await _specGenerator.Generate(output, _documentationOptions, cancellationToken);
+            _logger.LogInformation("Specification and coverage report saved to {OutputDirectory}", Path.GetFullPath(output));
+            return;
         }
-
-        OpenApiDocument merged = await _openApiMerger.MergeOpenApis(mergeInputs, cancellationToken);
+        _documentationOptions.BaselineDirectory ??= _documentationOptions.OutputDirectory ?? Path.Combine(Environment.CurrentDirectory, "output", "playwright");
+        string gitDirectory = await _gitUtil.CloneToTempDirectory($"https://github.com/soenneker/{Constants.Library.ToLowerInvariantFast()}", cancellationToken: cancellationToken);
+        bool changed;
+        bool generated = false;
+        try
+        {
+            changed = await _specGenerator.Generate(gitDirectory, _documentationOptions, cancellationToken);
+            generated = true;
+        }
+        catch (DocumentationReviewRequiredException)
+        {
+            generated = true;
+            throw;
+        }
+        finally
+        {
+            // Keep review artifacts outside the temporary checkout, including when coverage prevents publication.
+            string artifacts = _documentationOptions.OutputDirectory ?? Path.Combine(Environment.CurrentDirectory, "output", "playwright");
+            string documentation = Path.Combine(gitDirectory, "documentation");
+            if (Directory.Exists(documentation))
+            {
+                Directory.CreateDirectory(Path.Combine(artifacts, "documentation"));
+                if (generated && !File.Exists(Path.Combine(documentation, "crawl-failure.json")))
+                    File.Delete(Path.Combine(artifacts, "documentation", "crawl-failure.json"));
+                foreach (string file in Directory.EnumerateFiles(documentation, generated ? "*.json" : "crawl-failure.json"))
+                    File.Copy(file, Path.Combine(artifacts, "documentation", Path.GetFileName(file)), true);
+                if (generated && File.Exists(Path.Combine(gitDirectory, "openapi.json")))
+                    File.Copy(Path.Combine(gitDirectory, "openapi.json"), Path.Combine(artifacts, "openapi.json"), true);
+            }
+        }
+        if (!changed)
+        {
+            _logger.LogInformation("The documentation-derived specification is unchanged; skipping client generation.");
+            await CommitAndPush(gitDirectory, cancellationToken);
+            return;
+        }
         string filePath = Path.Combine(gitDirectory, "openapi.json");
-        await _fileUtil.Write(filePath, _openApiMerger.ToJson(merged), true, cancellationToken);
         string fixedFilePath = Path.Combine(gitDirectory, "openapi.fixed.json");
         await _fileUtil.DeleteIfExists(fixedFilePath, cancellationToken: cancellationToken);
         await _openApiFixer.Fix(filePath, fixedFilePath, cancellationToken).NoSync();
@@ -158,10 +174,14 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
 
         if (!successful)
         {
-            _logger.LogError("Build was not successful, exiting...");
-            return;
+            throw new InvalidOperationException("The generated LinkedIn client did not build successfully.");
         }
 
+        await CommitAndPush(gitDirectory, cancellationToken);
+    }
+
+    private async ValueTask CommitAndPush(string gitDirectory, CancellationToken cancellationToken)
+    {
         string gitHubToken = EnvironmentUtil.GetVariableStrict("GH__TOKEN");
         string name = EnvironmentUtil.GetVariableStrict("GIT__NAME");
         string email = EnvironmentUtil.GetVariableStrict("GIT__EMAIL");

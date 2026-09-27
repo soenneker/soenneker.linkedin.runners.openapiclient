@@ -1,10 +1,13 @@
 () => {
     const normalize = value => value.replace(/\r/g, '').replace(/[ \t]+/g, ' ').trim();
     const roots = [...document.querySelectorAll('main .content')];
+    // Learn landing pages use a card layout instead of the article .content wrapper.
+    if (!roots.length && document.querySelector('main')) roots.push(document.querySelector('main'));
     const title = document.querySelector('main h1')?.textContent?.trim() || '';
     const blocks = [];
     const links = new Set();
     let section = title;
+    const headings = [];
     let anchor = document.querySelector('main h1')?.id || '';
     for (const root of roots) {
         for (const a of root.querySelectorAll('a[href]')) links.add(a.href);
@@ -14,9 +17,12 @@
             if (/^H[2-5]$/.test(element.tagName)) {
                 section = normalize(element.textContent);
                 anchor = element.id;
+                const depth = Number(element.tagName.slice(1)) - 2;
+                headings.length = depth;
+                headings[depth] = section;
                 continue;
             }
-            const block = { Kind: 'text', Section: section, Anchor: anchor, Text: normalize(element.textContent), Headers: [], Rows: [] };
+            const block = { Kind: 'text', Section: section, Anchor: anchor, SectionPath: headings.filter(Boolean), Text: normalize(element.textContent), Headers: [], Rows: [] };
             if (element.tagName === 'TABLE') {
                 block.Kind = 'table';
                 const rows = [...element.rows];

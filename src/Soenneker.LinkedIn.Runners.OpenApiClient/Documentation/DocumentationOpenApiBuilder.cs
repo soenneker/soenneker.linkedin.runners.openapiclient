@@ -15,6 +15,7 @@ public sealed class DocumentationOpenApiBuilder
     public DocumentationBuild Build(IReadOnlyList<DocumentationPage> pages)
     {
         var issues = new List<DocumentationIssue>();
+        issues.AddRange(pages.Where(p => p.Error != null).Select(p => new DocumentationIssue(p.Url, "", p.Error!)));
         var schemas = new SchemaBuilder(pages, issues);
         var paths = new JsonObject();
         foreach (DocumentationPage page in pages.OrderBy(p => p.Url, StringComparer.Ordinal))
@@ -42,12 +43,15 @@ public sealed class DocumentationOpenApiBuilder
     {
         JsonObject? lastOperation = null;
         string lastMethod = "";
+        string lastRequestSection = "";
+        bool lastPartial = false;
+        bool lastCreate = false;
         string status = "";
         foreach (DocumentationBlock block in page.Blocks)
         {
             if (block.Kind == "text")
             {
-                Match statusMatch = Regex.Match(block.Text, @"\b([245]\d{2})\s+(?:response|status|Created|OK|No Content)", RegexOptions.IgnoreCase);
+                Match statusMatch = Regex.Match(block.Text, @"\b([245]\d{2})(?:\s+(?:response|status|Created|OK|No Content)|\s*\(No Content\))", RegexOptions.IgnoreCase);
                 if (lastOperation != null && statusMatch.Success)
                 {
                     status = statusMatch.Groups[1].Value;
@@ -85,27 +89,43 @@ public sealed class DocumentationOpenApiBuilder
                     pathItem[method] = operation;
                 }
                 AddParameters(operation, path, url, block.Text, page);
+                AddDocumentedParameters(operation, page, block);
+                foreach (JsonNode? parameter in (JsonArray)operation["parameters"]!)
+                {
+                    if (parameter!["in"]!.ToString() != "query") continue;
+                    JsonObject? definition = schemas.Parameter(page, parameter["name"]!.ToString());
+                    if (definition != null) parameter["schema"] = definition;
+                }
                 if (existing && operation["x-source-url"]?.ToString() != page.Url + "#" + block.Anchor)
                     AddString(operation, "x-source-urls", page.Url + "#" + block.Anchor);
                 if (url.Contains('?')) AddString(operation, "x-linkedin-request-variants", url[(url.IndexOf('?') + 1)..]);
                 lastOperation = operation;
                 lastMethod = method;
+                lastRequestSection = block.Section;
+                lastPartial = method == "patch" || block.Text.Contains("partial_update", StringComparison.OrdinalIgnoreCase) || method == "post" && path.Contains('{');
+                lastCreate = method == "post" && !lastPartial && !url.Contains("action=", StringComparison.OrdinalIgnoreCase);
                 status = "";
                 JsonNode? body = ExtractJson(block.Text);
-                if (body != null && method is "post" or "put" or "patch") AddBody(operation, schemas.ForExample(body, page, true), true, "");
+                if (body != null && method is "post" or "put" or "patch") AddBody(operation, schemas.ForExample(body, page, lastCreate, lastPartial), true, "");
                 continue;
             }
             JsonNode? example = ExtractJson(block.Text);
             if (example == null || lastOperation == null) continue;
             bool response = Regex.IsMatch(block.Section, @"response|result", RegexOptions.IgnoreCase) || lastMethod is "get" or "delete";
-            bool bodyRequest = Regex.IsMatch(block.Section, @"request|creat|updat|reshar", RegexOptions.IgnoreCase) && !response;
+            bool bodyRequest = (block.Section == lastRequestSection || Regex.IsMatch(block.Section, @"request|creat|updat|reshar", RegexOptions.IgnoreCase)) && !response;
             if (response)
             {
+                Match responseMethod = Regex.Match(block.Section, @"\b(get|post|put|patch|delete)\b", RegexOptions.IgnoreCase);
+                if (responseMethod.Success && !responseMethod.Value.Equals(lastMethod, StringComparison.OrdinalIgnoreCase))
+                {
+                    issues.Add(new(page.Url, block.Section, "Response example names a different method from the preceding request; association needs review."));
+                    continue;
+                }
                 Match httpStatus = Regex.Match(block.Text, @"HTTP/\S+\s+(\d{3})");
                 AddBody(lastOperation, schemas.ForExample(example, page, false), false, httpStatus.Success ? httpStatus.Groups[1].Value : status.Length > 0 ? status : "default");
             }
             else if (bodyRequest && lastMethod is "post" or "put" or "patch")
-                AddBody(lastOperation, schemas.ForExample(example, page, true), true, "");
+                AddBody(lastOperation, schemas.ForExample(example, page, lastCreate, lastPartial), true, "");
             else
                 issues.Add(new(page.Url, block.Section, "JSON example could not be reliably classified as a request or response."));
         }
@@ -125,13 +145,16 @@ public sealed class DocumentationOpenApiBuilder
 
     private static (string method, string url)? Request(string text)
     {
-        Match http = Regex.Match(text, @"\b(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+(https://api\.linkedin\.com/[^\r\n\s'""\\]+|/(?:rest|v2)/[^\r\n\s'""\\]+)", RegexOptions.IgnoreCase);
-        if (http.Success) return (http.Groups[1].Value.ToLowerInvariant(), http.Groups[2].Value);
+        // Replace whitespace inside documentation placeholders before finding the URL.
+        text = Regex.Replace(text, @"\{[^{}\r\n]+\}", m => "{" + Regex.Replace(m.Value[1..^1], @"\s+", "_") + "}");
+        Match http = Regex.Match(text, @"\b(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+['"" ]*(https://api\.linkedin\.com/[^\r\n\s'""\\]+|/(?:rest|v2)/[^\r\n\s'""\\]+)", RegexOptions.IgnoreCase);
+        Match methodOverride = Regex.Match(text, @"X-HTTP-Method-Override:\s*(GET|POST|PUT|PATCH|DELETE)", RegexOptions.IgnoreCase);
+        if (http.Success) return (methodOverride.Success ? methodOverride.Groups[1].Value.ToLowerInvariant() : http.Groups[1].Value.ToLowerInvariant(), http.Groups[2].Value);
         if (!text.Contains("curl", StringComparison.OrdinalIgnoreCase)) return null;
         Match url = Regex.Match(text, @"https://api\.linkedin\.com/[^\r\n\s'""\\]+");
         if (!url.Success) return null;
         Match method = Regex.Match(text, @"(?:-X|--request)\s+['"" ]*(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)", RegexOptions.IgnoreCase);
-        return (method.Success ? method.Groups[1].Value.ToLowerInvariant() : Regex.IsMatch(text, @"--data|-d\s") ? "post" : "get", url.Value);
+        return (methodOverride.Success ? methodOverride.Groups[1].Value.ToLowerInvariant() : method.Success ? method.Groups[1].Value.ToLowerInvariant() : Regex.IsMatch(text, @"--data|-d\s") ? "post" : "get", url.Value);
     }
 
     internal static string? NormalizePath(string url)
@@ -141,13 +164,15 @@ public sealed class DocumentationOpenApiBuilder
         if (!path.StartsWith("/rest/", StringComparison.Ordinal) && !path.StartsWith("/v2/", StringComparison.Ordinal)) return null;
         path = Regex.Replace(path, @"\{\{([^{}]+)\}\}|\{([^{}]+)\}|<([^<>]+)>", m => "{" + SchemaBuilder.Identifier(m.Groups.Values.Skip(1).First(g => g.Success).Value).Trim('_') + "}");
         string[] parts = path.Split('/');
+        if (parts.Length < 3 || parts[2].Contains('{')) return null;
         for (int i = 3; i < parts.Length; i++)
         {
-            if (Regex.IsMatch(parts[i], @"^\d+$") || parts[i].StartsWith("urn:", StringComparison.OrdinalIgnoreCase) || parts[i].StartsWith("urn%3A", StringComparison.OrdinalIgnoreCase))
+            if (Regex.IsMatch(parts[i], @"^\d+$|^\{[^{}]+\}$") || parts[i].StartsWith("urn:", StringComparison.OrdinalIgnoreCase) || parts[i].StartsWith("urn%3A", StringComparison.OrdinalIgnoreCase))
                 parts[i] = "{" + SchemaBuilder.Identifier(parts[i - 1].Trim('{', '}')) + "Id}";
         }
         path = string.Join('/', parts);
-        return path.Contains('(') || path.Contains(')') || path.Contains('<') || path.Contains('>') ? null : path;
+        string withoutParameters = Regex.Replace(path, @"\{[^{}]+\}", "");
+        return withoutParameters.IndexOfAny(['(', ')', '<', '>', '{', '}']) >= 0 ? null : path;
     }
 
     private static void AddParameters(JsonObject operation, string path, string url, string request, DocumentationPage page)
@@ -158,10 +183,12 @@ public sealed class DocumentationOpenApiBuilder
             foreach (string pair in url[(url.IndexOf('?') + 1)..].Split('&'))
             {
                 string name = pair.Split('=')[0];
-                if (Regex.IsMatch(name, @"^[\w.]+$")) AddParameter(parameters, name, "query", false);
+                if (Regex.IsMatch(name, @"^[\w.\[\]]+$")) AddParameter(parameters, name, "query", false);
             }
         if (request.Contains("X-Restli-Protocol-Version", StringComparison.OrdinalIgnoreCase))
             AddParameter(parameters, "X-Restli-Protocol-Version", "header", true, "2.0.0");
+        Match restliMethod = Regex.Match(request, @"X-Restli-Method:\s*([\w_]+)", RegexOptions.IgnoreCase);
+        if (restliMethod.Success) AddParameter(parameters, "X-Restli-Method", "header", false, restliMethod.Groups[1].Value);
         if (path.StartsWith("/rest/", StringComparison.Ordinal) && request.Contains("Linkedin-Version", StringComparison.OrdinalIgnoreCase))
             AddParameter(parameters, "Linkedin-Version", "header", true, page.Version.StartsWith("li-lms-", StringComparison.Ordinal) ? page.Version[7..].Replace("-", "") : null);
     }
@@ -172,6 +199,19 @@ public sealed class DocumentationOpenApiBuilder
         var schema = new JsonObject { ["type"] = "string" };
         if (defaultValue != null) schema["default"] = defaultValue;
         parameters.Add(new JsonObject { ["name"] = name, ["in"] = location, ["required"] = required, ["schema"] = schema });
+    }
+
+    private static void AddDocumentedParameters(JsonObject operation, DocumentationPage page, DocumentationBlock request)
+    {
+        foreach (DocumentationBlock table in page.Blocks.Where(b => b.Kind == "table" && b.Section.Contains("query parameter", StringComparison.OrdinalIgnoreCase)))
+        {
+            if (table.SectionPath.Count > 0 && request.SectionPath.Count > 0 && table.SectionPath[0] != request.SectionPath[0]) continue;
+            int column = SchemaBuilder.Column(table, "parameter", "parameter name", "name", "field");
+            if (column < 0) continue;
+            foreach (List<DocumentationCell> row in table.Rows)
+                if (row.Count > column && Regex.IsMatch(row[column].Text, @"^[\w.]+$"))
+                    AddParameter((JsonArray)operation["parameters"]!, row[column].Text, "query", false);
+        }
     }
 
     private static JsonObject Response(JsonObject operation, string status)

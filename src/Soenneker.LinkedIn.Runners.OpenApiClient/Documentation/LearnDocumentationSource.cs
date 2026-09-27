@@ -2,15 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Reflection;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
+using Soenneker.Playwrights.Installation.Abstract;
 
 namespace Soenneker.LinkedIn.Runners.OpenApiClient.Documentation;
 
-public sealed class LearnDocumentationSource(ILogger<LearnDocumentationSource> logger) : ILearnDocumentationSource
+public sealed class LearnDocumentationSource(ILogger<LearnDocumentationSource> logger, IPlaywrightInstallationUtil playwrightInstallationUtil) : ILearnDocumentationSource
 {
     public async Task<IReadOnlyList<DocumentationPage>> Read(DocumentationOptions options, CancellationToken cancellationToken = default)
     {
@@ -19,12 +23,15 @@ public sealed class LearnDocumentationSource(ILogger<LearnDocumentationSource> l
             "Soenneker.LinkedIn.Runners.OpenApiClient.Documentation.ExtractArticle.js")!;
         using var reader = new StreamReader(scriptStream);
         string script = await reader.ReadToEndAsync(cancellationToken);
+        var launchOptions = new BrowserTypeLaunchOptions { Headless = true };
+        await playwrightInstallationUtil.EnsureInstalled(launchOptions, cancellationToken);
         using IPlaywright playwright = await Playwright.CreateAsync();
-        await using IBrowser browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
+        await using IBrowser browser = await playwright.Chromium.LaunchAsync(launchOptions);
         await using IBrowserContext context = await browser.NewContextAsync(new() { Locale = "en-US" });
         IPage page = await context.NewPageAsync();
         page.SetDefaultTimeout(options.NavigationTimeoutMs);
-        var pending = new SortedSet<string>(options.SeedUrls.Select(url => DocumentationUrl.Normalize(url, options.MarketingVersion)!), StringComparer.Ordinal);
+        string[] seeds = options.SeedUrls.Length == 0 ? ["https://learn.microsoft.com/en-us/linkedin/"] : options.SeedUrls;
+        var pending = new SortedSet<string>(seeds.Select(url => DocumentationUrl.Normalize(url, options.MarketingVersion)!), StringComparer.Ordinal);
         var visited = new HashSet<string>(StringComparer.Ordinal);
         var pages = new SortedDictionary<string, DocumentationPage>(StringComparer.Ordinal);
         while (pending.Count > 0)
@@ -36,7 +43,17 @@ public sealed class LearnDocumentationSource(ILogger<LearnDocumentationSource> l
             if (visited.Count > options.MaxPages)
                 throw new InvalidOperationException($"Documentation exceeded the {options.MaxPages} page limit. Refusing a partial crawl; increase Documentation:MaxPages or narrow SeedUrls.");
             logger.LogInformation("Reading LinkedIn documentation ({Count}): {Url}", visited.Count, url);
-            DocumentationPage article = await ReadPage(page, url, script, options, cancellationToken);
+            DocumentationPage article;
+            try
+            {
+                article = await ReadPage(page, url, script, options, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogWarning("Could not read documentation {Url}: {Error}", url, ex.Message);
+                pages[url] = new DocumentationPage { Url = url, Error = ex.Message };
+                continue;
+            }
             string canonical = DocumentationUrl.Normalize(article.Url, options.MarketingVersion)
                 ?? throw new InvalidOperationException($"Documentation redirected outside official LinkedIn Learn articles: {url}");
             article.Url = canonical;
@@ -60,15 +77,17 @@ public sealed class LearnDocumentationSource(ILogger<LearnDocumentationSource> l
             {
                 IResponse? response = await page.GotoAsync(url, new() { WaitUntil = WaitUntilState.DOMContentLoaded, Timeout = options.NavigationTimeoutMs }).WaitAsync(cancellationToken);
                 if (response == null || !response.Ok)
-                    throw new InvalidOperationException($"Documentation returned HTTP {response?.Status}: {url}");
+                    throw new HttpRequestException($"Documentation returned HTTP {response?.Status}: {url}", null, response == null ? null : (HttpStatusCode)response.Status);
                 await page.Locator("main h1").WaitForAsync().WaitAsync(cancellationToken);
-                DocumentationPage result = await page.EvaluateAsync<DocumentationPage>(script).WaitAsync(cancellationToken);
+                JsonElement extracted = await page.EvaluateAsync<JsonElement>(script).WaitAsync(cancellationToken);
+                DocumentationPage result = extracted.Deserialize<DocumentationPage>() ?? throw new InvalidOperationException($"Empty extraction: {url}");
                 if (string.IsNullOrWhiteSpace(result.Title) || result.Blocks.Count == 0 ||
                     result.Title.Contains("404", StringComparison.OrdinalIgnoreCase) || result.Title.Contains("Access denied", StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException($"No readable article content at {url}. Refusing to replace the previous specification.");
                 return result;
             }
-            catch (Exception ex) when (attempt < 3 && ex is not OperationCanceledException)
+            catch (Exception ex) when (attempt < 3 && ex is not OperationCanceledException &&
+                                       (ex is not HttpRequestException http || http.StatusCode is null or HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests || (int)http.StatusCode >= 500))
             {
                 await Task.Delay(TimeSpan.FromSeconds(attempt * 2), cancellationToken);
             }

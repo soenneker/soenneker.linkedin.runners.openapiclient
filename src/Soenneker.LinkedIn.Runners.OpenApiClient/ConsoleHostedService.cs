@@ -16,6 +16,7 @@ public sealed class ConsoleHostedService : IHostedService
     private readonly IFileOperationsUtil _fileOperationsUtil;
 
     private int? _exitCode;
+    private Task? _executionTask;
 
     public ConsoleHostedService(ILogger<ConsoleHostedService> logger, IHostApplicationLifetime appLifetime, IFileOperationsUtil fileOperationsUtil)
     {
@@ -28,17 +29,22 @@ public sealed class ConsoleHostedService : IHostedService
     {
         _appLifetime.ApplicationStarted.Register(() =>
         {
-            Task.Run(async () =>
+            _executionTask = Task.Run(async () =>
             {
                 _logger.LogInformation("Running console hosted service ...");
+                using var operationCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _appLifetime.ApplicationStopping);
 
                 try
                 {
-                    await _fileOperationsUtil.Process(cancellationToken);
+                    await _fileOperationsUtil.Process(operationCts.Token);
 
                     _logger.LogInformation("Complete!");
 
                     _exitCode = 0;
+                }
+                catch (OperationCanceledException) when (operationCts.IsCancellationRequested)
+                {
+                    _exitCode = 130;
                 }
                 catch (Exception e)
                 {
@@ -47,7 +53,6 @@ public sealed class ConsoleHostedService : IHostedService
 
                     _logger.LogError(e, "Unhandled exception");
 
-                    await Task.Delay(2000, cancellationToken);
                     _exitCode = 1;
                 }
                 finally
@@ -61,12 +66,13 @@ public sealed class ConsoleHostedService : IHostedService
         return Task.CompletedTask;
     }
 
-    public Task StopAsync(CancellationToken cancellationToken)
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
+        if (_executionTask != null)
+            await _executionTask.WaitAsync(cancellationToken);
         _logger.LogDebug("Exiting with return code: {exitCode}", _exitCode);
 
         // Exit code may be null if the user cancelled via Ctrl+C/SIGTERM
         Environment.ExitCode = _exitCode.GetValueOrDefault(-1);
-        return Task.CompletedTask;
     }
 }

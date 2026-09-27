@@ -4,9 +4,8 @@ using Soenneker.Managers.Runners.Registrars;
 using Soenneker.OpenApi.Fixer.Registrars;
 using Soenneker.LinkedIn.Runners.OpenApiClient.Utils;
 using Soenneker.LinkedIn.Runners.OpenApiClient.Utils.Abstract;
-using Soenneker.Utils.File.Download.Registrars;
-using Soenneker.Postman.Converter.Registrars;
-using Soenneker.OpenApi.Merger.Registrars;
+using Soenneker.LinkedIn.Runners.OpenApiClient.Documentation;
+using Soenneker.Playwrights.Installation.Registrars;
 
 namespace Soenneker.LinkedIn.Runners.OpenApiClient;
 
@@ -25,11 +24,11 @@ public static class Startup
     {
         services.AddHostedService<ConsoleHostedService>()
                 .AddSingleton<IFileOperationsUtil, FileOperationsUtil>()
+                .AddSingleton<ILearnDocumentationSource, LearnDocumentationSource>()
+                .AddSingleton<IDocumentationSpecGenerator, DocumentationSpecGenerator>()
+                .AddPlaywrightInstallationUtilAsSingleton()
                 .AddRunnersManagerAsSingleton()
-                .AddFileDownloadUtilAsSingleton()
                 .AddOpenApiFixerAsSingleton()
-                .AddPostmanConverterAsSingleton()
-                .AddOpenApiMergerAsSingleton()
                 .AddKiotaUtilAsSingleton();
 
         return services;
