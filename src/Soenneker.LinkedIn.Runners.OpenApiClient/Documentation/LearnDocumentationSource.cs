@@ -80,7 +80,7 @@ public sealed class LearnDocumentationSource(ILogger<LearnDocumentationSource> l
                     throw new HttpRequestException($"Documentation returned HTTP {response?.Status}: {url}", null, response == null ? null : (HttpStatusCode)response.Status);
                 await page.Locator("main h1").WaitForAsync().WaitAsync(cancellationToken);
                 JsonElement extracted = await page.EvaluateAsync<JsonElement>(script).WaitAsync(cancellationToken);
-                DocumentationPage result = extracted.Deserialize<DocumentationPage>() ?? throw new InvalidOperationException($"Empty extraction: {url}");
+                DocumentationPage result = extracted.Deserialize(AotJsonContext.Get<DocumentationPage>()) ?? throw new InvalidOperationException($"Empty extraction: {url}");
                 if (string.IsNullOrWhiteSpace(result.Title) || result.Blocks.Count == 0 ||
                     result.Title.Contains("404", StringComparison.OrdinalIgnoreCase) || result.Title.Contains("Access denied", StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException($"No readable article content at {url}. Refusing to replace the previous specification.");

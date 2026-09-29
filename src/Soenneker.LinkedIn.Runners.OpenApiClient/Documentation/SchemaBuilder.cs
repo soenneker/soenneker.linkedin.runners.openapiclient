@@ -166,9 +166,9 @@ internal sealed class SchemaBuilder
             if (Regex.IsMatch(requirement, @"\bcreate[- ]only\b", RegexOptions.IgnoreCase)) schema["x-linkedin-create-only"] = true;
             Match createEnum = Regex.Match(row[typeIndex].Text + " " + description, @"\b([A-Z][A-Z0-9_]*) is the only accepted (?:field|value) during creation\b");
             if (createEnum.Success) schema["x-linkedin-create-enum"] = new JsonArray(createEnum.Groups[1].Value);
-            if (Regex.IsMatch(requirement, @"^(required|yes|true)$", RegexOptions.IgnoreCase) && !name.Contains('.')) required.Add(name);
-            else if (Regex.IsMatch(requirement, @"^create[- ]only required$", RegexOptions.IgnoreCase) && !name.Contains('.')) createRequired.Add(name);
-            else if (requiredIndex >= 0 && table.Headers[requiredIndex].Equals("optional", StringComparison.OrdinalIgnoreCase) && requirement.Equals("no", StringComparison.OrdinalIgnoreCase) && !name.Contains('.')) required.Add(name);
+            if (Regex.IsMatch(requirement, @"^(required|yes|true)$", RegexOptions.IgnoreCase) && !name.Contains('.')) required.Add((System.Text.Json.Nodes.JsonNode?)name);
+            else if (Regex.IsMatch(requirement, @"^create[- ]only required$", RegexOptions.IgnoreCase) && !name.Contains('.')) createRequired.Add((System.Text.Json.Nodes.JsonNode?)name);
+            else if (requiredIndex >= 0 && table.Headers[requiredIndex].Equals("optional", StringComparison.OrdinalIgnoreCase) && requirement.Equals("no", StringComparison.OrdinalIgnoreCase) && !name.Contains('.')) required.Add((System.Text.Json.Nodes.JsonNode?)name);
             if (schema["type"] == null && schema["allOf"] == null && schema["oneOf"] == null)
                 _issues.Add(new(page.Url, table.Section, $"Type for {name} needs review: {row[typeIndex].Text}"));
             AddProperty(properties, name, schema);

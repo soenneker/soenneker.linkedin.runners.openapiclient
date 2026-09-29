@@ -41,18 +41,17 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             Directory.CreateDirectory(snapshotDirectory);
-            await WriteIfChanged(Path.Combine(snapshotDirectory, "crawl-failure.json"), JsonSerializer.Serialize(new
-            {
+            await WriteIfChanged(Path.Combine(snapshotDirectory, "crawl-failure.json"), JsonSerializer.Serialize(new CrawlFailureReport {
                 Error = ex.Message,
                 PreviousSpecificationRetained = true
-            }, JsonOptions) + "\n", cancellationToken);
+            }, AotJsonContext.Get<CrawlFailureReport>(JsonOptions)) + "\n", cancellationToken);
             throw;
         }
         var manifest = new JsonObject();
         var snapshots = new SortedDictionary<string, string>(StringComparer.Ordinal);
         foreach (DocumentationPage page in pages)
         {
-            string content = JsonSerializer.Serialize(page, JsonOptions) + "\n";
+            string content = JsonSerializer.Serialize(page, AotJsonContext.Get<DocumentationPage>(JsonOptions)) + "\n";
             string name = Hash(page.Url)[..24] + ".json";
             snapshots[name] = content;
             manifest[page.Url] = new JsonObject { ["file"] = name, ["sha256"] = Hash(content), ["version"] = page.Version, ["error"] = page.Error };
@@ -61,18 +60,17 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
         if (unreadablePreviousPages.Length > 0)
         {
             Directory.CreateDirectory(snapshotDirectory);
-            await WriteIfChanged(Path.Combine(snapshotDirectory, "crawl-failure.json"), JsonSerializer.Serialize(new
-            {
+            await WriteIfChanged(Path.Combine(snapshotDirectory, "crawl-failure.json"), JsonSerializer.Serialize(new UnreadablePagesReport {
                 UnreadablePreviouslyTrackedPages = unreadablePreviousPages,
                 PreviousSpecificationRetained = true
-            }, JsonOptions) + "\n", cancellationToken);
+            }, AotJsonContext.Get<UnreadablePagesReport>(JsonOptions)) + "\n", cancellationToken);
             throw new InvalidOperationException("Previously readable documentation could not be fetched. The previous specification was retained: " + string.Join(", ", unreadablePreviousPages));
         }
         string[] removedPages = previousManifest?.Select(p => p.Key).Except(manifest.Select(p => p.Key), StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray() ?? [];
         if (removedPages.Length > 0)
         {
             Directory.CreateDirectory(snapshotDirectory);
-            await WriteIfChanged(Path.Combine(snapshotDirectory, "crawl-failure.json"), JsonSerializer.Serialize(new { RemovedPages = removedPages, PreviousSpecificationRetained = true }, JsonOptions) + "\n", cancellationToken);
+            await WriteIfChanged(Path.Combine(snapshotDirectory, "crawl-failure.json"), JsonSerializer.Serialize(new RemovedPagesReport { RemovedPages = removedPages, PreviousSpecificationRetained = true }, AotJsonContext.Get<RemovedPagesReport>(JsonOptions)) + "\n", cancellationToken);
             throw new InvalidOperationException("Previously tracked documentation disappeared from the crawl. Refusing an incomplete update: " + string.Join(", ", removedPages));
         }
         var postmanManifest = new JsonObject();
@@ -107,7 +105,7 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
             if (parsed.Document == null || errors.Length > 0)
             {
                 Directory.CreateDirectory(snapshotDirectory);
-                await WriteIfChanged(Path.Combine(snapshotDirectory, "crawl-failure.json"), JsonSerializer.Serialize(new { ValidationErrors = errors, PreviousSpecificationRetained = true }, JsonOptions) + "\n", cancellationToken);
+                await WriteIfChanged(Path.Combine(snapshotDirectory, "crawl-failure.json"), JsonSerializer.Serialize(new ValidationErrorsReport { ValidationErrors = errors, PreviousSpecificationRetained = true }, AotJsonContext.Get<ValidationErrorsReport>(JsonOptions)) + "\n", cancellationToken);
                 throw new InvalidOperationException("Generated OpenAPI failed validation: " + string.Join("; ", errors));
             }
         }
@@ -119,7 +117,7 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
         if (removedOperations.Length > 0)
         {
             Directory.CreateDirectory(snapshotDirectory);
-            await WriteIfChanged(Path.Combine(snapshotDirectory, "crawl-failure.json"), JsonSerializer.Serialize(new { RemovedOperations = removedOperations, PreviousSpecificationRetained = true }, JsonOptions) + "\n", cancellationToken);
+            await WriteIfChanged(Path.Combine(snapshotDirectory, "crawl-failure.json"), JsonSerializer.Serialize(new RemovedOperationsReport { RemovedOperations = removedOperations, PreviousSpecificationRetained = true }, AotJsonContext.Get<RemovedOperationsReport>(JsonOptions)) + "\n", cancellationToken);
             throw new InvalidOperationException("Previously generated operations disappeared from the documentation. Review these removals before replacing the baseline: " + string.Join(", ", removedOperations));
         }
         Directory.CreateDirectory(snapshotDirectory);
@@ -129,8 +127,7 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
             await WriteIfChanged(Path.Combine(snapshotDirectory, name), content, cancellationToken);
         await WriteIfChanged(manifestPath, Serialize(manifest), cancellationToken);
         await WriteIfChanged(Path.Combine(snapshotDirectory, "postman-manifest.json"), Serialize(postmanManifest), cancellationToken);
-        await WriteIfChanged(Path.Combine(snapshotDirectory, "coverage.json"), JsonSerializer.Serialize(new
-        {
+        await WriteIfChanged(Path.Combine(snapshotDirectory, "coverage.json"), JsonSerializer.Serialize(new CoverageReport {
             Pages = pages.Count,
             PostmanCollections = postman.Collections.Count,
             PostmanFetchIssues = postman.Issues,
@@ -140,11 +137,10 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
             Operations = Operations(build.Document).Count(),
             Schemas = build.Document["components"]!["schemas"]!.AsObject().Count,
             Issues = build.Issues
-        }, JsonOptions) + "\n", cancellationToken);
+        }, AotJsonContext.Get<CoverageReport>(JsonOptions)) + "\n", cancellationToken);
         // Keep the last meaningful change report on no-op runs to avoid an extra commit the next day.
         if (changedPages.Length > 0 || changedCollections.Length > 0 || baselineChanged)
-            await WriteIfChanged(Path.Combine(snapshotDirectory, "changes.json"), JsonSerializer.Serialize(new
-            {
+            await WriteIfChanged(Path.Combine(snapshotDirectory, "changes.json"), JsonSerializer.Serialize(new ChangesReport {
                 ChangedPages = changedPages,
                 ChangedPostmanCollections = changedCollections,
                 PostmanFetchIssues = postman.Issues,
@@ -152,7 +148,7 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
                 RemovedOperations = removedOperations,
                 SpecificationChanges = Differences(previousSpec, build.Document, "").ToArray(),
                 SpecificationChanged = baselineChanged
-            }, JsonOptions) + "\n", cancellationToken);
+            }, AotJsonContext.Get<ChangesReport>(JsonOptions)) + "\n", cancellationToken);
         await WriteIfChanged(specPath, serialized, cancellationToken);
         logger.LogInformation("LinkedIn documentation: {Pages} pages, {Operations} operations, {Issues} unresolved definitions; spec changed: {Changed}", pages.Count, Operations(build.Document).Count(), build.Issues.Count, changed);
         if (!options.SpecOnly && options.FailOnUnresolvedSchemas && build.Issues.Count > 0)
@@ -165,16 +161,16 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
 
     private static string Hash(string text) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
 
-    private static IEnumerable<object> Differences(JsonNode? before, JsonNode? after, string pointer)
+    private static IEnumerable<SpecificationDifference> Differences(JsonNode? before, JsonNode? after, string pointer)
     {
         if (JsonNode.DeepEquals(before, after)) yield break;
         if (before is JsonObject left && after is JsonObject right)
         {
             foreach (string key in left.Select(p => p.Key).Union(right.Select(p => p.Key)).Order(StringComparer.Ordinal))
-                foreach (object difference in Differences(left[key], right[key], pointer + "/" + key.Replace("~", "~0").Replace("/", "~1")))
+                foreach (SpecificationDifference difference in Differences(left[key], right[key], pointer + "/" + key.Replace("~", "~0").Replace("/", "~1")))
                     yield return difference;
         }
-        else yield return new { Pointer = pointer, Before = before?.DeepClone(), After = after?.DeepClone() };
+        else yield return new SpecificationDifference(pointer, before?.DeepClone(), after?.DeepClone());
     }
 
     private static string Serialize(JsonNode node) => Sort(node).ToJsonString(JsonOptions) + "\n";

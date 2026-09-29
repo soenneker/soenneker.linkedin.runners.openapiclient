@@ -198,7 +198,7 @@ public sealed class DocumentationOpenApiBuilder
         if (parameters.Any(p => p!["name"]!.ToString() == name && p["in"]!.ToString() == location)) return;
         var schema = new JsonObject { ["type"] = "string" };
         if (defaultValue != null) schema["default"] = defaultValue;
-        parameters.Add(new JsonObject { ["name"] = name, ["in"] = location, ["required"] = required, ["schema"] = schema });
+        parameters.Add((System.Text.Json.Nodes.JsonNode?)new JsonObject { ["name"] = name, ["in"] = location, ["required"] = required, ["schema"] = schema });
     }
 
     private static void AddDocumentedParameters(JsonObject operation, DocumentationPage page, DocumentationBlock request)
@@ -239,7 +239,7 @@ public sealed class DocumentationOpenApiBuilder
     private static void AddString(JsonObject target, string key, string value)
     {
         if (target[key] is not JsonArray values) target[key] = values = new JsonArray();
-        if (!values.Any(v => v!.ToString() == value)) values.Add(value);
+        if (!values.Any(v => v!.ToString() == value)) values.Add((System.Text.Json.Nodes.JsonNode?)value);
     }
 
     internal static JsonNode? ExtractJson(string text)
