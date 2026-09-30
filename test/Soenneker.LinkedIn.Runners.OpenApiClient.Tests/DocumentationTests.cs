@@ -42,7 +42,7 @@ public sealed class DocumentationTests
     }
 
     [Test]
-    public async Task ConvertsGenericTablesAndSeparatesCreateRequirementsFromResponses()
+    public async ValueTask ConvertsGenericTablesAndSeparatesCreateRequirementsFromResponses()
     {
         DocumentationBuild result = new DocumentationOpenApiBuilder().Build([Page()]);
         JsonNode request = result.Document["paths"]!["/rest/widgets"]!["post"]!["requestBody"]!["content"]!["application/json"]!["schema"]!;
@@ -73,7 +73,7 @@ public sealed class DocumentationTests
     }
 
     [Test]
-    public async Task DailyRunsAreStableAndReportFieldChanges()
+    public async ValueTask DailyRunsAreStableAndReportFieldChanges()
     {
         string directory = Path.Combine(Path.GetTempPath(), "linkedin-docs-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -105,7 +105,7 @@ public sealed class DocumentationTests
     }
 
     [Test]
-    public async Task MissingPreviouslyTrackedPagesCannotSilentlyRemoveCoverage()
+    public async ValueTask MissingPreviouslyTrackedPagesCannotSilentlyRemoveCoverage()
     {
         string directory = Path.Combine(Path.GetTempPath(), "linkedin-docs-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -124,7 +124,7 @@ public sealed class DocumentationTests
     }
 
     [Test]
-    public async Task CachedDraftStillRequiresClientGenerationWhenNotPublished()
+    public async ValueTask CachedDraftStillRequiresClientGenerationWhenNotPublished()
     {
         string directory = Path.Combine(Path.GetTempPath(), "linkedin-docs-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -180,7 +180,7 @@ public sealed class DocumentationTests
     }
 
     [Test]
-    public async Task CollectionChangesAndFetchFailuresAreTrackedWithoutDiscardingTheSpecification()
+    public async ValueTask CollectionChangesAndFetchFailuresAreTrackedWithoutDiscardingTheSpecification()
     {
         string directory = Path.Combine(Path.GetTempPath(), "linkedin-hybrid-test-" + Guid.NewGuid().ToString("N"));
         try
