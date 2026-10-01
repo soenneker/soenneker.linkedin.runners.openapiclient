@@ -33,10 +33,34 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
         JsonObject? publishedSpec = File.Exists(specPath) ? JsonNode.Parse(await File.ReadAllTextAsync(specPath, cancellationToken))!.AsObject() : null;
         IReadOnlyList<DocumentationPage> pages;
         PostmanBuild postman;
+        string[] missingPages;
         try
         {
             postman = await postmanSource.Read(outputDirectory, options, cancellationToken);
             pages = await source.Read(options, cancellationToken);
+            missingPages = previousManifest?.Select(p => p.Key).Except(pages.Select(p => p.Url), StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray() ?? [];
+            if (missingPages.Length > 0)
+            {
+                var retainedPages = pages.ToList();
+                foreach (string url in missingPages)
+                {
+                    string name = Hash(url)[..24] + ".json";
+                    string path = Path.Combine(baseline, "documentation", name);
+                    if (!File.Exists(path))
+                        throw new InvalidOperationException("No saved documentation snapshot is available for " + url);
+                    string content = await File.ReadAllTextAsync(path, cancellationToken);
+                    string? expectedHash = previousManifest![url]?["sha256"]?.GetValue<string>();
+                    // Git checkouts may convert JSON line endings on Windows.
+                    if (Hash(content) != expectedHash && Hash(content.Replace("\r\n", "\n", StringComparison.Ordinal)) != expectedHash)
+                        throw new InvalidOperationException("Saved documentation snapshot checksum does not match for " + url);
+                    DocumentationPage? retained = JsonSerializer.Deserialize(content, AotJsonContext.Get<DocumentationPage>(JsonOptions));
+                    if (retained == null || retained.Url != url)
+                        throw new InvalidOperationException("Cannot retain the saved documentation snapshot for " + url);
+                    retainedPages.Add(retained);
+                    logger.LogWarning("Previously tracked documentation disappeared from the crawl: {Url}. Retaining its saved snapshot and continuing the update.", url);
+                }
+                pages = retainedPages.OrderBy(p => p.Url, StringComparer.Ordinal).ToArray();
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -65,13 +89,6 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
                 PreviousSpecificationRetained = true
             }, AotJsonContext.Get<UnreadablePagesReport>(JsonOptions)) + "\n", cancellationToken);
             throw new InvalidOperationException("Previously readable documentation could not be fetched. The previous specification was retained: " + string.Join(", ", unreadablePreviousPages));
-        }
-        string[] removedPages = previousManifest?.Select(p => p.Key).Except(manifest.Select(p => p.Key), StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray() ?? [];
-        if (removedPages.Length > 0)
-        {
-            Directory.CreateDirectory(snapshotDirectory);
-            await WriteIfChanged(Path.Combine(snapshotDirectory, "crawl-failure.json"), JsonSerializer.Serialize(new RemovedPagesReport { RemovedPages = removedPages, PreviousSpecificationRetained = true }, AotJsonContext.Get<RemovedPagesReport>(JsonOptions)) + "\n", cancellationToken);
-            throw new InvalidOperationException("Previously tracked documentation disappeared from the crawl. Refusing an incomplete update: " + string.Join(", ", removedPages));
         }
         var postmanManifest = new JsonObject();
         string previousPostmanPath = Path.Combine(baseline, "documentation", "postman-manifest.json");
@@ -129,6 +146,7 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
         await WriteIfChanged(Path.Combine(snapshotDirectory, "postman-manifest.json"), Serialize(postmanManifest), cancellationToken);
         await WriteIfChanged(Path.Combine(snapshotDirectory, "coverage.json"), JsonSerializer.Serialize(new CoverageReport {
             Pages = pages.Count,
+            RetainedMissingPages = missingPages,
             PostmanCollections = postman.Collections.Count,
             PostmanFetchIssues = postman.Issues,
             ResponsesEnrichedFromLearn = build.Document["paths"]!.AsObject().SelectMany(p => p.Value!.AsObject())

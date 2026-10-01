@@ -17,12 +17,6 @@ internal sealed class UnreadablePagesReport
     public bool PreviousSpecificationRetained { get; init; }
 }
 
-internal sealed class RemovedPagesReport
-{
-    public string[] RemovedPages { get; init; } = [];
-    public bool PreviousSpecificationRetained { get; init; }
-}
-
 internal sealed class ValidationErrorsReport
 {
     public string[] ValidationErrors { get; init; } = [];
@@ -38,6 +32,7 @@ internal sealed class RemovedOperationsReport
 internal sealed class CoverageReport
 {
     public int Pages { get; init; }
+    public string[] RetainedMissingPages { get; init; } = [];
     public int PostmanCollections { get; init; }
     public IReadOnlyList<DocumentationIssue>? PostmanFetchIssues { get; init; }
     public int ResponsesEnrichedFromLearn { get; init; }

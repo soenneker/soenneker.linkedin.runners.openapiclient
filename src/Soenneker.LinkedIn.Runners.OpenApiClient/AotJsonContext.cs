@@ -8,7 +8,6 @@ namespace Soenneker.LinkedIn.Runners.OpenApiClient;
 [JsonSerializable(typeof(Documentation.DocumentationPage))]
 [JsonSerializable(typeof(Documentation.CrawlFailureReport))]
 [JsonSerializable(typeof(Documentation.UnreadablePagesReport))]
-[JsonSerializable(typeof(Documentation.RemovedPagesReport))]
 [JsonSerializable(typeof(Documentation.ValidationErrorsReport))]
 [JsonSerializable(typeof(Documentation.RemovedOperationsReport))]
 [JsonSerializable(typeof(Documentation.CoverageReport))]

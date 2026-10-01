@@ -105,22 +105,66 @@ public sealed class DocumentationTests
     }
 
     [Test]
-    public async ValueTask MissingPreviouslyTrackedPagesCannotSilentlyRemoveCoverage()
+    public async ValueTask MissingPreviouslyTrackedPagesRetainSnapshotsAndAllowUpdates()
     {
         string directory = Path.Combine(Path.GetTempPath(), "linkedin-docs-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try
         {
-            var source = new FakeSource { Pages = [Page(), new() { Url = "https://learn.microsoft.com/en-us/linkedin/shared/extra", Title = "Extra" }] };
-            var generator = new DocumentationSpecGenerator(source, new FakePostmanSource(), NullLogger<DocumentationSpecGenerator>.Instance);
+            var missing = new DocumentationPage { Url = "https://learn.microsoft.com/en-us/linkedin/shared/extra", Title = "Extra",
+                Blocks = [new() { Kind = "code", Section = "Get", Text = "GET https://api.linkedin.com/rest/extra" }] };
+            var source = new FakeSource { Pages = [Page(), missing] };
+            var generator = new DocumentationSpecGenerator(source, new FakePostmanSource { Pages = [Page(), missing] }, NullLogger<DocumentationSpecGenerator>.Instance);
             var options = new DocumentationOptions { SpecOnly = true };
             await generator.Generate(directory, options);
             string previous = await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"));
             source.Pages.RemoveAt(1);
-            await MustFail(() => generator.Generate(directory, options));
+            Check(!await generator.Generate(directory, options), "Retained snapshot changed the specification.");
             Check(previous == await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json")), "Missing article changed the spec.");
+            JsonNode coverage = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(directory, "documentation", "coverage.json")))!;
+            Check(coverage["RetainedMissingPages"]![0]!.ToString() == missing.Url, "Missing page retention was not reported.");
+            source.Pages[0].Blocks[0].Rows.Add([new() { Text = "newField" }, new() { Text = "boolean" }, new() { Text = "New field" }, new() { Text = "optional" }]);
+            string client = Path.Combine(directory, "client");
+            Check(await generator.Generate(client, new DocumentationOptions { SpecOnly = true, BaselineDirectory = directory }), "Missing page prevented other updates.");
+            string updated = await File.ReadAllTextAsync(Path.Combine(client, "openapi.json"));
+            Check(updated.Contains("newField", StringComparison.Ordinal) && updated.Contains("/rest/extra", StringComparison.Ordinal), "Updated or retained definitions were lost.");
+            Check(!await generator.Generate(client, options), "Retained snapshot was not copied to the output directory.");
+            source.Pages.Add(missing);
+            Check(!await generator.Generate(client, options), "Returning page changed the specification.");
+            coverage = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(client, "documentation", "coverage.json")))!;
+            Check(coverage["RetainedMissingPages"]!.AsArray().Count == 0, "Returning page was still reported as missing.");
         }
         finally { Directory.Delete(directory, true); }
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async ValueTask UnusableMissingPageSnapshotsPreservePublishedSpecification(bool corrupt)
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "linkedin-docs-test-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var source = new FakeSource { Pages = [Page()] };
+            var generator = new DocumentationSpecGenerator(source, new FakePostmanSource(), NullLogger<DocumentationSpecGenerator>.Instance);
+            var options = new DocumentationOptions { SpecOnly = true };
+            await generator.Generate(directory, options);
+            string previous = await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"));
+            string manifestPath = Path.Combine(directory, "documentation", "manifest.json");
+            string manifest = await File.ReadAllTextAsync(manifestPath);
+            string snapshot = Path.Combine(directory, "documentation", JsonNode.Parse(manifest)![source.Pages[0].Url]!["file"]!.GetValue<string>());
+            if (corrupt)
+                await File.WriteAllTextAsync(snapshot, (await File.ReadAllTextAsync(snapshot)).Replace("Widgets", "Corrupted", StringComparison.Ordinal));
+            else
+                File.Delete(snapshot);
+            source.Pages.Clear();
+            await MustFail(() => generator.Generate(directory, options));
+            Check(previous == await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json")), "Unusable snapshot replaced the published specification.");
+            Check(manifest == await File.ReadAllTextAsync(manifestPath), "Unusable snapshot replaced the manifest.");
+            JsonNode failure = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(directory, "documentation", "crawl-failure.json")))!;
+            Check(failure["PreviousSpecificationRetained"]!.GetValue<bool>() && failure["Error"]!.ToString().Contains(Page().Url, StringComparison.Ordinal), "Snapshot failure was not reported.");
+        }
+        finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
     }
 
     [Test]
@@ -205,11 +249,12 @@ public sealed class DocumentationTests
 
     private sealed class FakePostmanSource : IPostmanSpecSource
     {
+        public List<DocumentationPage> Pages { get; set; } = [Page()];
         public Dictionary<string, string> Collections { get; } = [];
         public Exception? Failure { get; set; }
         public Task<PostmanBuild> Read(string outputDirectory, DocumentationOptions options, CancellationToken cancellationToken = default) => Failure != null
             ? Task.FromException<PostmanBuild>(Failure)
-            : Task.FromResult(new PostmanBuild(new DocumentationOpenApiBuilder().Build([Page()]).Document, Collections));
+            : Task.FromResult(new PostmanBuild(new DocumentationOpenApiBuilder().Build(Pages).Document, Collections));
     }
 
     private sealed class FakeSource : ILearnDocumentationSource
