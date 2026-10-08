@@ -42,7 +42,7 @@ public sealed class DocumentationTests
     }
 
     [Test]
-    public async ValueTask ConvertsGenericTablesAndSeparatesCreateRequirementsFromResponses()
+    public async ValueTask ConvertsGenericTablesAndSeparatesCreateRequirementsFromResponses(CancellationToken cancellationToken)
     {
         DocumentationBuild result = new DocumentationOpenApiBuilder().Build([Page()]);
         JsonNode request = result.Document["paths"]!["/rest/widgets"]!["post"]!["requestBody"]!["content"]!["application/json"]!["schema"]!;
@@ -53,7 +53,7 @@ public sealed class DocumentationTests
         Check(request["properties"]!["state"]!["enum"]!.AsArray().Count == 2, "Documented enum values were lost.");
         Check(!request["required"]!.AsArray().Any(v => v!.ToString() == "note"), "An example-only field was made required.");
         using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(result.Document.ToJsonString()));
-        var read = await new OpenApiJsonReader().ReadAsync(stream, new Uri("https://example.test/openapi.json"), new OpenApiReaderSettings());
+        var read = await new OpenApiJsonReader().ReadAsync(stream, new Uri("https://example.test/openapi.json"), new OpenApiReaderSettings(), cancellationToken: cancellationToken);
         Check(read.Document != null && read.Diagnostic?.Errors.Any() != true, "Generated OpenAPI did not parse: " + string.Join("; ", read.Diagnostic?.Errors.Select(e => e.Message) ?? []));
     }
 
@@ -73,7 +73,7 @@ public sealed class DocumentationTests
     }
 
     [Test]
-    public async ValueTask DailyRunsAreStableAndReportFieldChanges()
+    public async ValueTask DailyRunsAreStableAndReportFieldChanges(CancellationToken cancellationToken)
     {
         string directory = Path.Combine(Path.GetTempPath(), "linkedin-docs-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -82,30 +82,30 @@ public sealed class DocumentationTests
             var source = new FakeSource { Pages = [Page()] };
             var generator = new DocumentationSpecGenerator(source, new FakePostmanSource(), NullLogger<DocumentationSpecGenerator>.Instance);
             var options = new DocumentationOptions { SpecOnly = true };
-            Check(await generator.Generate(directory, options), "First generation was not detected.");
-            string original = await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"));
-            string report = await File.ReadAllTextAsync(Path.Combine(directory, "documentation", "changes.json"));
-            Check(!await generator.Generate(directory, options), "Identical documentation generated a change.");
-            Check(report == await File.ReadAllTextAsync(Path.Combine(directory, "documentation", "changes.json")), "No-op run churned the change report.");
+            Check(await generator.Generate(directory, options, cancellationToken: cancellationToken), "First generation was not detected.");
+            string original = await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"), cancellationToken: cancellationToken);
+            string report = await File.ReadAllTextAsync(Path.Combine(directory, "documentation", "changes.json"), cancellationToken: cancellationToken);
+            Check(!await generator.Generate(directory, options, cancellationToken: cancellationToken), "Identical documentation generated a change.");
+            Check(report == await File.ReadAllTextAsync(Path.Combine(directory, "documentation", "changes.json"), cancellationToken: cancellationToken), "No-op run churned the change report.");
             source.Pages[0].Blocks[0].Rows.Add([new() { Text = "newField" }, new() { Text = "boolean" }, new() { Text = "Added by documentation" }, new() { Text = "optional" }]);
-            Check(await generator.Generate(directory, options), "New documented field was not detected without a code change.");
-            string updated = await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"));
+            Check(await generator.Generate(directory, options, cancellationToken: cancellationToken), "New documented field was not detected without a code change.");
+            string updated = await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"), cancellationToken: cancellationToken);
             Check(original != updated && updated.Contains("newField", StringComparison.Ordinal), "New field missing from spec.");
-            Check((await File.ReadAllTextAsync(Path.Combine(directory, "documentation", "changes.json"))).Contains("newField", StringComparison.Ordinal), "Field change missing from report.");
+            Check((await File.ReadAllTextAsync(Path.Combine(directory, "documentation", "changes.json"), cancellationToken: cancellationToken)).Contains("newField", StringComparison.Ordinal), "Field change missing from report.");
             source.Failure = new InvalidOperationException("HTTP 503");
-            await MustFail(() => generator.Generate(directory, options));
-            Check(updated == await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json")), "Failed crawl replaced the last good spec.");
+            await MustFail(() => generator.Generate(directory, options, cancellationToken: cancellationToken));
+            Check(updated == await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"), cancellationToken: cancellationToken), "Failed crawl replaced the last good spec.");
             source.Failure = null;
             source.Pages[0].Error = "HTTP 503";
             source.Pages[0].Blocks.Clear();
-            await MustFail(() => generator.Generate(directory, options));
-            Check(updated == await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json")), "An unreadable tracked article replaced the last good spec.");
+            await MustFail(() => generator.Generate(directory, options, cancellationToken: cancellationToken));
+            Check(updated == await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"), cancellationToken: cancellationToken), "An unreadable tracked article replaced the last good spec.");
         }
         finally { Directory.Delete(directory, true); }
     }
 
     [Test]
-    public async ValueTask MissingPreviouslyTrackedPagesRetainSnapshotsAndAllowUpdates()
+    public async ValueTask MissingPreviouslyTrackedPagesRetainSnapshotsAndAllowUpdates(CancellationToken cancellationToken)
     {
         string directory = Path.Combine(Path.GetTempPath(), "linkedin-docs-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -116,22 +116,22 @@ public sealed class DocumentationTests
             var source = new FakeSource { Pages = [Page(), missing] };
             var generator = new DocumentationSpecGenerator(source, new FakePostmanSource { Pages = [Page(), missing] }, NullLogger<DocumentationSpecGenerator>.Instance);
             var options = new DocumentationOptions { SpecOnly = true };
-            await generator.Generate(directory, options);
-            string previous = await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"));
+            await generator.Generate(directory, options, cancellationToken: cancellationToken);
+            string previous = await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"), cancellationToken: cancellationToken);
             source.Pages.RemoveAt(1);
-            Check(!await generator.Generate(directory, options), "Retained snapshot changed the specification.");
-            Check(previous == await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json")), "Missing article changed the spec.");
-            JsonNode coverage = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(directory, "documentation", "coverage.json")))!;
+            Check(!await generator.Generate(directory, options, cancellationToken: cancellationToken), "Retained snapshot changed the specification.");
+            Check(previous == await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"), cancellationToken: cancellationToken), "Missing article changed the spec.");
+            JsonNode coverage = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(directory, "documentation", "coverage.json"), cancellationToken: cancellationToken))!;
             Check(coverage["RetainedMissingPages"]![0]!.ToString() == missing.Url, "Missing page retention was not reported.");
             source.Pages[0].Blocks[0].Rows.Add([new() { Text = "newField" }, new() { Text = "boolean" }, new() { Text = "New field" }, new() { Text = "optional" }]);
             string client = Path.Combine(directory, "client");
-            Check(await generator.Generate(client, new DocumentationOptions { SpecOnly = true, BaselineDirectory = directory }), "Missing page prevented other updates.");
-            string updated = await File.ReadAllTextAsync(Path.Combine(client, "openapi.json"));
+            Check(await generator.Generate(client, new DocumentationOptions { SpecOnly = true, BaselineDirectory = directory }, cancellationToken: cancellationToken), "Missing page prevented other updates.");
+            string updated = await File.ReadAllTextAsync(Path.Combine(client, "openapi.json"), cancellationToken: cancellationToken);
             Check(updated.Contains("newField", StringComparison.Ordinal) && updated.Contains("/rest/extra", StringComparison.Ordinal), "Updated or retained definitions were lost.");
-            Check(!await generator.Generate(client, options), "Retained snapshot was not copied to the output directory.");
+            Check(!await generator.Generate(client, options, cancellationToken: cancellationToken), "Retained snapshot was not copied to the output directory.");
             source.Pages.Add(missing);
-            Check(!await generator.Generate(client, options), "Returning page changed the specification.");
-            coverage = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(client, "documentation", "coverage.json")))!;
+            Check(!await generator.Generate(client, options, cancellationToken: cancellationToken), "Returning page changed the specification.");
+            coverage = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(client, "documentation", "coverage.json"), cancellationToken: cancellationToken))!;
             Check(coverage["RetainedMissingPages"]!.AsArray().Count == 0, "Returning page was still reported as missing.");
         }
         finally { Directory.Delete(directory, true); }
@@ -140,7 +140,7 @@ public sealed class DocumentationTests
     [Test]
     [Arguments(false)]
     [Arguments(true)]
-    public async ValueTask UnusableMissingPageSnapshotsPreservePublishedSpecification(bool corrupt)
+    public async ValueTask UnusableMissingPageSnapshotsPreservePublishedSpecification(bool corrupt, CancellationToken cancellationToken)
     {
         string directory = Path.Combine(Path.GetTempPath(), "linkedin-docs-test-" + Guid.NewGuid().ToString("N"));
         try
@@ -148,27 +148,27 @@ public sealed class DocumentationTests
             var source = new FakeSource { Pages = [Page()] };
             var generator = new DocumentationSpecGenerator(source, new FakePostmanSource(), NullLogger<DocumentationSpecGenerator>.Instance);
             var options = new DocumentationOptions { SpecOnly = true };
-            await generator.Generate(directory, options);
-            string previous = await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"));
+            await generator.Generate(directory, options, cancellationToken: cancellationToken);
+            string previous = await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"), cancellationToken: cancellationToken);
             string manifestPath = Path.Combine(directory, "documentation", "manifest.json");
-            string manifest = await File.ReadAllTextAsync(manifestPath);
+            string manifest = await File.ReadAllTextAsync(manifestPath, cancellationToken: cancellationToken);
             string snapshot = Path.Combine(directory, "documentation", JsonNode.Parse(manifest)![source.Pages[0].Url]!["file"]!.GetValue<string>());
             if (corrupt)
-                await File.WriteAllTextAsync(snapshot, (await File.ReadAllTextAsync(snapshot)).Replace("Widgets", "Corrupted", StringComparison.Ordinal));
+                await File.WriteAllTextAsync(snapshot, (await File.ReadAllTextAsync(snapshot, cancellationToken: cancellationToken)).Replace("Widgets", "Corrupted", StringComparison.Ordinal), cancellationToken: cancellationToken);
             else
                 File.Delete(snapshot);
             source.Pages.Clear();
-            await MustFail(() => generator.Generate(directory, options));
-            Check(previous == await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json")), "Unusable snapshot replaced the published specification.");
-            Check(manifest == await File.ReadAllTextAsync(manifestPath), "Unusable snapshot replaced the manifest.");
-            JsonNode failure = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(directory, "documentation", "crawl-failure.json")))!;
+            await MustFail(() => generator.Generate(directory, options, cancellationToken: cancellationToken));
+            Check(previous == await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"), cancellationToken: cancellationToken), "Unusable snapshot replaced the published specification.");
+            Check(manifest == await File.ReadAllTextAsync(manifestPath, cancellationToken: cancellationToken), "Unusable snapshot replaced the manifest.");
+            JsonNode failure = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(directory, "documentation", "crawl-failure.json"), cancellationToken: cancellationToken))!;
             Check(failure["PreviousSpecificationRetained"]!.GetValue<bool>() && failure["Error"]!.ToString().Contains(Page().Url, StringComparison.Ordinal), "Snapshot failure was not reported.");
         }
         finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
     }
 
     [Test]
-    public async ValueTask CachedDraftStillRequiresClientGenerationWhenNotPublished()
+    public async ValueTask CachedDraftStillRequiresClientGenerationWhenNotPublished(CancellationToken cancellationToken)
     {
         string directory = Path.Combine(Path.GetTempPath(), "linkedin-docs-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -176,8 +176,8 @@ public sealed class DocumentationTests
         {
             var generator = new DocumentationSpecGenerator(new FakeSource { Pages = [Page()] }, new FakePostmanSource(), NullLogger<DocumentationSpecGenerator>.Instance);
             string baseline = Path.Combine(directory, "baseline");
-            await generator.Generate(baseline, new DocumentationOptions { SpecOnly = true });
-            bool changed = await generator.Generate(Path.Combine(directory, "client"), new DocumentationOptions { SpecOnly = true, BaselineDirectory = baseline });
+            await generator.Generate(baseline, new DocumentationOptions { SpecOnly = true }, cancellationToken: cancellationToken);
+            bool changed = await generator.Generate(Path.Combine(directory, "client"), new DocumentationOptions { SpecOnly = true, BaselineDirectory = baseline }, cancellationToken: cancellationToken);
             Check(changed, "An unpublished cached draft incorrectly skipped client generation.");
         }
         finally { Directory.Delete(directory, true); }
@@ -224,7 +224,7 @@ public sealed class DocumentationTests
     }
 
     [Test]
-    public async ValueTask CollectionChangesAndFetchFailuresAreTrackedWithoutDiscardingTheSpecification()
+    public async ValueTask CollectionChangesAndFetchFailuresAreTrackedWithoutDiscardingTheSpecification(CancellationToken cancellationToken)
     {
         string directory = Path.Combine(Path.GetTempPath(), "linkedin-hybrid-test-" + Guid.NewGuid().ToString("N"));
         try
@@ -233,16 +233,16 @@ public sealed class DocumentationTests
             postman.Collections["widgets"] = "{\"info\":{\"name\":\"Widgets\"},\"item\":[]}";
             var generator = new DocumentationSpecGenerator(new FakeSource { Pages = [Page()] }, postman, NullLogger<DocumentationSpecGenerator>.Instance);
             var options = new DocumentationOptions { SpecOnly = true };
-            await generator.Generate(directory, options);
-            Check(!await generator.Generate(directory, options), "Identical hybrid sources were unstable.");
+            await generator.Generate(directory, options, cancellationToken: cancellationToken);
+            Check(!await generator.Generate(directory, options, cancellationToken: cancellationToken), "Identical hybrid sources were unstable.");
             postman.Collections["widgets"] = "{\"info\":{\"name\":\"Updated widgets\"},\"item\":[]}";
-            Check(!await generator.Generate(directory, options), "Raw metadata-only change regenerated the client.");
-            JsonNode changes = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(directory, "documentation", "changes.json")))!;
+            Check(!await generator.Generate(directory, options, cancellationToken: cancellationToken), "Raw metadata-only change regenerated the client.");
+            JsonNode changes = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(directory, "documentation", "changes.json"), cancellationToken: cancellationToken))!;
             Check(changes["ChangedPostmanCollections"]![0]!.ToString() == "widgets", "Collection change was not reported.");
-            string previous = await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"));
+            string previous = await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"), cancellationToken: cancellationToken);
             postman.Failure = new InvalidOperationException("Source unavailable with no previous snapshot");
-            await MustFail(() => generator.Generate(directory, options));
-            Check(previous == await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json")), "Download failure replaced the spec.");
+            await MustFail(() => generator.Generate(directory, options, cancellationToken: cancellationToken));
+            Check(previous == await File.ReadAllTextAsync(Path.Combine(directory, "openapi.json"), cancellationToken: cancellationToken), "Download failure replaced the spec.");
         }
         finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
     }
