@@ -45,7 +45,7 @@ jobs:
         run: dotnet build src/Soenneker.LinkedIn.Runners.OpenApiClient/Soenneker.LinkedIn.Runners.OpenApiClient.csproj --configuration Release --no-restore
 
       - name: Restore documentation baseline
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: output/playwright/
           key: linkedin-hybrid-v1-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -72,7 +72,7 @@ jobs:
 
       - name: Save documentation baseline
         if: always() && hashFiles('output/playwright/documentation/manifest.json') != '' && hashFiles('output/playwright/openapi.json') != ''
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: output/playwright/
           key: linkedin-hybrid-v1-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
