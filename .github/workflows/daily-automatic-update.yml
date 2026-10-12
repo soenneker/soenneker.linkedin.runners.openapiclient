@@ -52,7 +52,7 @@ jobs:
           restore-keys: linkedin-hybrid-v1-${{ github.ref_name }}-
 
       - name: Log in to NuGet
-        uses: NuGet/login@v1
+        uses: soenneker/nuget-resilient-login@v2
         id: nuget-login
         with:
           user: soenneker
