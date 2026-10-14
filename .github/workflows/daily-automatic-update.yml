@@ -18,7 +18,6 @@ concurrency:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
 
@@ -51,15 +50,9 @@ jobs:
           key: linkedin-hybrid-v1-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: linkedin-hybrid-v1-${{ github.ref_name }}-
 
-      - name: Log in to NuGet
-        uses: soenneker/nuget-resilient-login@v7
-        id: nuget-login
-        with:
-          user: soenneker
-
       - name: Run
         env:
-          NUGET__TOKEN: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+          NUGET__TOKEN: ${{ secrets.NUGET__TOKEN }}
         run: dotnet run --project src/Soenneker.LinkedIn.Runners.OpenApiClient/Soenneker.LinkedIn.Runners.OpenApiClient.csproj --configuration Release --no-restore --no-build --verbosity normal
 
       - name: Upload documentation and schema changes
