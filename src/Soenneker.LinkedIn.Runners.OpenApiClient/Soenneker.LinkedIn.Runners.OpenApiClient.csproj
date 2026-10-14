@@ -28,16 +28,16 @@
     <ItemGroup>
         <PackageReference Include="Soenneker.Extensions.LoggerConfiguration" Version="4.0.1439" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.13" />
-        <PackageReference Include="Soenneker.Kiota.Util" Version="4.0.161" />
-        <PackageReference Include="Soenneker.Managers.Runners" Version="4.0.2634" />
+        <PackageReference Include="Soenneker.Kiota.Util" Version="4.0.163" />
+        <PackageReference Include="Soenneker.Managers.Runners" Version="4.0.2635" />
         <PackageReference Include="Soenneker.OpenApi.Fixer" Version="4.0.394" />
         <PackageReference Include="Soenneker.Playwrights.Installation" Version="4.0.226" />
         <PackageReference Include="Soenneker.Postman.Converter" Version="4.0.151" />
-        <PackageReference Include="Soenneker.OpenApi.Merger" Version="4.0.222" />
+        <PackageReference Include="Soenneker.OpenApi.Merger" Version="4.0.223" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Soenneker.Enums.DeployEnvironment" Version="4.0.259" />
-        <PackageReference Include="Soenneker.Extensions.ValueTask" Version="4.0.132" />
+        <PackageReference Include="Soenneker.Extensions.ValueTask" Version="4.0.133" />
     </ItemGroup>
     <ItemGroup>
         <EmbeddedResource Include="Documentation/ExtractArticle.js" />
