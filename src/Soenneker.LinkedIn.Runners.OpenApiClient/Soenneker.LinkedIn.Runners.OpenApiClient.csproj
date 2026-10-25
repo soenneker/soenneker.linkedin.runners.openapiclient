@@ -31,7 +31,7 @@
         <PackageReference Include="Soenneker.Kiota.Util" Version="4.0.167" />
         <PackageReference Include="Soenneker.Managers.Runners" Version="4.0.2646" />
         <PackageReference Include="Soenneker.OpenApi.Fixer" Version="4.0.401" />
-        <PackageReference Include="Soenneker.Playwrights.Installation" Version="4.0.230" />
+        <PackageReference Include="Soenneker.Playwrights.Installation" Version="4.0.231" />
         <PackageReference Include="Soenneker.Postman.Converter" Version="4.0.154" />
         <PackageReference Include="Soenneker.OpenApi.Merger" Version="4.0.227" />
     </ItemGroup>
