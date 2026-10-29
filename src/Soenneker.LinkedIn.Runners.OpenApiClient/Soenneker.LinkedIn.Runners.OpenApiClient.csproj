@@ -33,7 +33,7 @@
         <PackageReference Include="Soenneker.OpenApi.Fixer" Version="11.0.410" />
         <PackageReference Include="Soenneker.Playwrights.Installation" Version="11.0.239" />
         <PackageReference Include="Soenneker.Postman.Converter" Version="11.0.162" />
-        <PackageReference Include="Soenneker.OpenApi.Merger" Version="11.0.241" />
+        <PackageReference Include="Soenneker.OpenApi.Merger" Version="11.0.242" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Soenneker.Enums.DeployEnvironment" Version="11.0.262" />
