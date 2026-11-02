@@ -36,10 +36,6 @@
         <PackageReference Include="Soenneker.OpenApi.Merger" Version="11.0.245" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Soenneker.Enums.DeployEnvironment" Version="11.0.262" />
-        <PackageReference Include="Soenneker.Extensions.ValueTask" Version="4.0.133" />
-    </ItemGroup>
-    <ItemGroup>
         <EmbeddedResource Include="Documentation/ExtractArticle.js" />
     </ItemGroup>
 </Project>
