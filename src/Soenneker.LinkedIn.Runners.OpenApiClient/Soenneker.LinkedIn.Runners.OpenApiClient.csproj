@@ -33,7 +33,7 @@
         <PackageReference Include="Soenneker.OpenApi.Fixer" Version="11.0.430" />
         <PackageReference Include="Soenneker.Playwrights.Installation" Version="11.0.246" />
         <PackageReference Include="Soenneker.Postman.Converter" Version="11.0.168" />
-        <PackageReference Include="Soenneker.OpenApi.Merger" Version="11.0.250" />
+        <PackageReference Include="Soenneker.OpenApi.Merger" Version="11.0.251" />
     </ItemGroup>
     <ItemGroup>
         <EmbeddedResource Include="Documentation/ExtractArticle.js" />
