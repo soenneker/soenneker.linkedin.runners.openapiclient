@@ -114,7 +114,7 @@ public sealed class DocumentationSpecGenerator(ILearnDocumentationSource source,
             foreach (DocumentationIssue issue in postman.Issues) logger.LogWarning("{Collection}: {Message}", issue.Section, issue.Message);
         }
         string serialized = Serialize(build.Document);
-        using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(serialized)))
+        using (var stream = new StringStream(serialized, Encoding.UTF8))
         {
             ReadResult parsed = await new OpenApiJsonReader().ReadAsync(stream, new Uri(Path.GetFullPath(specPath)), new OpenApiReaderSettings(), cancellationToken);
             string[] errors = (parsed.Diagnostic?.Errors.Select(e => e.Message) ?? [])
