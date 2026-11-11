@@ -30,8 +30,8 @@
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="11.0.0" />
         <PackageReference Include="Soenneker.Kiota.Util" Version="11.0.187" />
         <PackageReference Include="Soenneker.Managers.Runners" Version="11.0.2718" />
-        <PackageReference Include="Soenneker.OpenApi.Fixer" Version="11.0.436" />
-        <PackageReference Include="Soenneker.Playwrights.Installation" Version="11.0.253" />
+        <PackageReference Include="Soenneker.OpenApi.Fixer" Version="11.0.437" />
+        <PackageReference Include="Soenneker.Playwrights.Installation" Version="11.0.254" />
         <PackageReference Include="Soenneker.Postman.Converter" Version="11.0.173" />
         <PackageReference Include="Soenneker.OpenApi.Merger" Version="11.0.261" />
     </ItemGroup>
