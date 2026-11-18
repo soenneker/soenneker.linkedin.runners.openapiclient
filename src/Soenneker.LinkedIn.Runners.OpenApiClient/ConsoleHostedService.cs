@@ -70,7 +70,8 @@ public sealed class ConsoleHostedService : IHostedService
     {
         if (_executionTask != null)
             await _executionTask.WaitAsync(cancellationToken);
-        _logger.LogDebug("Exiting with return code: {exitCode}", _exitCode);
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("Exiting with return code: {exitCode}", _exitCode);
 
         // Exit code may be null if the user cancelled via Ctrl+C/SIGTERM
         Environment.ExitCode = _exitCode.GetValueOrDefault(-1);
